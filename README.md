@@ -19,32 +19,17 @@ python -m pip install -e .
 ```
 
 This installs the package from the current project directory (`.`), including
-all processing, loading, localization, and plotting dependencies. 
-```
+all processing, loading, localization, classification, and plotting
+dependencies.
 
-## Input convention
+## Loading recordings
 
-```python
-from bioloc import Recording
+BioLoc has one standard user-facing loading function: `load_recording`. Input
+signals must already be synchronized. The loader reads the selected microphone
+files, checks their compatibility, loads the requested segment, and converts
+the microphone GPS coordinates to the local-metre geometry used internally.
 
-recording = Recording(
-    signals=signals,                         # (microphones, samples)
-    sample_rate=48_000,                     # Hz
-    microphone_positions=positions_metres,  # (microphones, 2) or (..., 3)
-    microphone_names=("AUD34", "AUD35", "AUD36"),
-)
-```
-
-Signals must be synchronized. Geometry is computed in local metres. When the
-standard loader receives microphone positions as latitude/longitude, every
-source location is returned both as local metres (`position_m`) and GPS
-coordinates (`gps_position`, ordered as latitude then longitude). Delays use
-samples unless their field name explicitly says seconds.
-
-
-## Standard recording loader
-
-The general loader accepts this directory structure:
+The recording directory follows this structure:
 
 ```text
 recordings/
@@ -57,14 +42,15 @@ recordings/
 └── positions.csv
 ```
 
-The CSV can be headerless and compatible with the current project:
+The same loader accepts either of the following CSV representations. A
+headerless file remains compatible with the current recordings:
 
 ```text
 49.83592,14.09566,mic-a
 49.83616,14.09531,mic-b
 ```
 
-or headered:
+The recommended representation for new datasets includes column names:
 
 ```text
 recorder_id,latitude,longitude
@@ -92,6 +78,11 @@ recording = load_recording(
 `recording_date=None`, files are read directly from each recorder-ID folder.
 With no date or time selector, each selected folder must contain exactly one
 eligible synchronized WAV file.
+
+Geometry is computed in local metres. Every estimated source is returned both
+as local metres (`position_m`) and GPS coordinates (`gps_position`, ordered as
+latitude then longitude). Delays use samples unless their field name explicitly
+says seconds.
 
 ## Complete pipeline
 
