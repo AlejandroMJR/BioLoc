@@ -91,6 +91,15 @@ class ReconstructionConfig:
 
 
 @dataclass(frozen=True)
+class ClassificationConfig:
+    backend: str = "birdnet"
+    min_confidence: float = 0.1
+    perch_model: str = "perch_8"
+    perch_hop_duration: float = 1.0
+    perch_warm_up: bool = True
+
+
+@dataclass(frozen=True)
 class PipelineConfig:
     roi: ROIConfig = field(default_factory=ROIConfig)
     local_tdoa: LocalTDOAConfig = field(default_factory=LocalTDOAConfig)
@@ -98,3 +107,4 @@ class PipelineConfig:
     association: AssociationConfig = field(default_factory=AssociationConfig)
     localization: LocalizationConfig = field(default_factory=LocalizationConfig)
     reconstruction: ReconstructionConfig = field(default_factory=ReconstructionConfig)
+    classification: ClassificationConfig = field(default_factory=ClassificationConfig)

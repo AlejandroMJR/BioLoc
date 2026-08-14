@@ -34,7 +34,7 @@ class BirdNETClassifier:
             except ImportError as error:
                 raise ImportError(
                     "BirdNET classification requires "
-                    "`pip install multisource-tdoa[birdnet]`."
+                    "Reinstall `BioLoc` to restore its BirdNET dependency."
                 ) from error
             analyzer = Analyzer()
         self.analyzer = analyzer
@@ -72,7 +72,7 @@ class BirdNETClassifier:
         except ImportError as error:
             raise ImportError(
                 "BirdNET classification requires "
-                "`pip install multisource-tdoa[birdnet]`."
+                "Reinstall `BioLoc` to restore its BirdNET dependency."
             ) from error
         recording = RecordingBuffer(
             self.analyzer,
@@ -120,7 +120,7 @@ class PerchClassifier:
             except ImportError as error:
                 raise ImportError(
                     "Perch classification requires "
-                    "`pip install multisource-tdoa[perch]`."
+                    "`pip install BioLoc[perch]`."
                 ) from error
             model = model_configs.load_model_by_name(model_name)
         self.model = model

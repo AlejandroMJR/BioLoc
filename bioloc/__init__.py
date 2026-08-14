@@ -4,6 +4,7 @@ from .association import associate_tdoas, build_feature_vectors
 from .classifiers import BirdNETClassifier, PerchClassifier
 from .config import (
     AssociationConfig,
+    ClassificationConfig,
     LocalizationConfig,
     LocalTDOAConfig,
     PeakExtractionConfig,
@@ -49,6 +50,7 @@ __all__ = [
     "AssociatedTDOA",
     "AssociationResult",
     "ClassificationResult",
+    "ClassificationConfig",
     "LocalizationConfig",
     "LocalizationResult",
     "LocalTDOAConfig",

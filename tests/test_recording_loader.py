@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-from multisource_tdoa import load_recording, read_position_csv
+from bioloc import load_recording, read_position_csv
 
 
 class RecordingLoaderTest(unittest.TestCase):

@@ -1,12 +1,8 @@
-# multisource-tdoa
+# BioLoc
 
-Research-oriented Python package for extracting local time differences of
+Python package for extracting local time differences of
 arrival (TDOAs), associating pairwise delays into concurrent acoustic sources,
-reconstructing those sources, and estimating their locations.
-
-The package is currently an alpha refactor of the original `main.py` research
-pipeline. The numerical kernels remain unchanged while the public interface is
-being stabilized.
+reconstructing those sources, classifying them and estimating their locations.
 
 ## Installation
 
@@ -36,7 +32,7 @@ python -m pip install -e ".[dev]"
 ## Input convention
 
 ```python
-from multisource_tdoa import Recording
+from bioloc import Recording
 
 recording = Recording(
     signals=signals,                         # (microphones, samples)
@@ -84,7 +80,7 @@ mic-b,49.83616,14.09531
 Load and standardize the signals and geometry with:
 
 ```python
-from multisource_tdoa import load_recording
+from bioloc import load_recording
 
 recording = load_recording(
     root_directory="recordings",
@@ -105,7 +101,7 @@ eligible synchronized WAV file.
 ## Complete pipeline
 
 ```python
-from multisource_tdoa import PipelineConfig, run_pipeline
+from bioloc import PipelineConfig, run_pipeline
 
 config = PipelineConfig()
 result = run_pipeline(
@@ -130,7 +126,7 @@ No-source cases return empty lists rather than `None`.
 ## Stage-by-stage use
 
 ```python
-from multisource_tdoa import (
+from bioloc import (
     associate_tdoas,
     estimate_local_tdoas,
     extract_regions_of_interest,
@@ -162,37 +158,42 @@ reconstruction = reconstruct_sources(
 Feature construction is part of association. `association.features` exposes the
 exact vectors used by that step.
 
-## Optional classification
+## Classification
 
-Classification is an additional operation on reconstructed signals. Ready-to-use
-BirdNET and Perch adapters classify the most active window of every reconstructed
-source while retaining all detections returned by the selected backend.
-
-Install one backend and pass its classifier to the pipeline:
-
-```bash
-python -m pip install -e ".[birdnet]"
-```
+Classification is the final pipeline stage. BirdNET is the default and is
+installed with the package. It classifies the most active window of every
+reconstructed source and retains every returned detection:
 
 ```python
-from multisource_tdoa import BirdNETClassifier
-
-result = run_pipeline(
-    recording,
-    config,
-    classifier=BirdNETClassifier(min_confidence=0.1),
-)
+result = run_pipeline(recording, config)
 
 result.classification.sources[0].label
 result.classification.sources[0].confidence
 result.classification.sources[0].detections
 ```
 
-For Perch, install `.[perch]` and use `PerchClassifier()`. Users can also supply
-another classifier implementing `classify(signal, sample_rate)`:
+To use Perch instead, install its model runtime and select it in the pipeline
+configuration:
+
+```bash
+python -m pip install -e ".[perch]"
+```
 
 ```python
-from multisource_tdoa import classify_reconstructed_sources
+from dataclasses import replace
+
+config = replace(
+    config,
+    classification=replace(config.classification, backend="perch"),
+)
+result = run_pipeline(recording, config)
+```
+
+The standalone classification function remains available for users supplying a
+different classifier implementing `classify(signal, sample_rate)`:
+
+```python
+from bioloc import classify_reconstructed_sources
 
 class MyClassifier:
     name = "my-classifier"
@@ -210,9 +211,6 @@ classifications = classify_reconstructed_sources(
 )
 ```
 
-Passing the same classifier to `run_pipeline(..., classifier=...)` stores the
-result in `result.classification`.
-
 ## Plotting
 
 The public pipeline exposes only two plot controls:
@@ -222,7 +220,7 @@ result = run_pipeline(
     recording,
     config,
     plot=True,        # display the standard figures
-    save_plots=True,  # save them under Figures/multisource_tdoa
+    save_plots=True,  # save them under Figures/BioLoc
 )
 ```
 
@@ -234,7 +232,7 @@ Classifier-input plots and paper-specific debugging figures are not generated.
 
 ## Regression comparison
 
-`multisource_tdoa.regression.save_pipeline_snapshot` saves compact intermediate
+`bioloc.regression.save_pipeline_snapshot` saves compact intermediate
 values to JSON. It includes ROI activity, local TDOA counts and samples, peak
 delays, associated members, locations, mask summaries, reconstructed-signal
 summaries, and classifications.

@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from multisource_tdoa._kernels.reconstruction import build_source_tf_maps_aligned_to_mic
+from bioloc._kernels.reconstruction import build_source_tf_maps_aligned_to_mic
 
 
 class AmbiguousPairTfRejectionTest(unittest.TestCase):

@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from multisource_tdoa._kernels.tdoa import (
+from bioloc._kernels.tdoa import (
     fill_outside_source_mask_with_white_noise,
 )
 

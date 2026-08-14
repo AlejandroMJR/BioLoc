@@ -3,14 +3,12 @@
 from dataclasses import replace
 from pathlib import Path
 
-from multisource_tdoa import (
-    BirdNETClassifier,
-    PerchClassifier,
+from bioloc import (
     PipelineConfig,
     load_recording,
     run_pipeline,
 )
-from multisource_tdoa.regression import save_pipeline_snapshot
+from bioloc.regression import save_pipeline_snapshot
 
 
 # Point this at the recording root before running the example.
@@ -23,7 +21,7 @@ START_SECONDS = 459
 DURATION_SECONDS = 5
 
 # PyCharm-friendly run settings. Edit these and press Run or Debug.
-CLASSIFIER = None  # None, "birdnet", or "perch"
+CLASSIFIER = "birdnet"  # "birdnet" or "perch"
 MIN_CONFIDENCE = 0.1
 PERCH_MODEL = "perch_8"
 PLOT = True
@@ -48,22 +46,16 @@ def main():
         config,
         association=replace(config.association, environment_bounds=bounds),
         localization=replace(config.localization, environment_bounds=bounds),
-    )
-    if CLASSIFIER == "birdnet":
-        classifier = BirdNETClassifier(min_confidence=MIN_CONFIDENCE)
-    elif CLASSIFIER == "perch":
-        classifier = PerchClassifier(
-            PERCH_MODEL,
+        classification=replace(
+            config.classification,
+            backend=CLASSIFIER,
             min_confidence=MIN_CONFIDENCE,
-        )
-    elif CLASSIFIER is None:
-        classifier = None
-    else:
-        raise ValueError("CLASSIFIER must be None, 'birdnet', or 'perch'")
+            perch_model=PERCH_MODEL,
+        ),
+    )
     result = run_pipeline(
         recording,
         config,
-        classifier=classifier,
         plot=PLOT,
         save_plots=SAVE_PLOTS,
     )

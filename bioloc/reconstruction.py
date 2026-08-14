@@ -1,4 +1,4 @@
-"""Source-mask reconstruction and optional classification."""
+"""Source-mask reconstruction and classification."""
 
 from __future__ import annotations
 

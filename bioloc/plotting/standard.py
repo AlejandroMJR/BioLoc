@@ -20,11 +20,11 @@ def make_standard_plots(
     """Create the fixed set of scientifically useful original-style figures."""
     import matplotlib.pyplot as plt
 
-    from multisource_tdoa._kernels import plotting as legacy
+    from bioloc._kernels import plotting as legacy
 
     legacy.set_plot_style(base_font=24)
     plt.rcParams["figure.max_open_warning"] = 0
-    output_directory = Path("Figures") / "multisource_tdoa"
+    output_directory = Path("Figures") / "BioLoc"
     if save:
         output_directory.mkdir(parents=True, exist_ok=True)
 
@@ -257,7 +257,7 @@ def make_standard_plots(
 
 
 def _raw_peak_mapping(peaks):
-    from multisource_tdoa.association import _raw_peak_mapping as convert
+    from bioloc.association import _raw_peak_mapping as convert
 
     return convert(peaks)
 

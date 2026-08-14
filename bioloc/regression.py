@@ -61,17 +61,13 @@ def pipeline_snapshot(result) -> dict:
             }
             for source in result.reconstruction.sources
         ],
-        "classification": (
-            None
-            if result.classification is None
-            else [
-                {
-                    "label": source.label,
-                    "confidence": source.confidence,
-                }
-                for source in result.classification.sources
-            ]
-        ),
+        "classification": [
+            {
+                "label": source.label,
+                "confidence": source.confidence,
+            }
+            for source in result.classification.sources
+        ],
     }
 
 

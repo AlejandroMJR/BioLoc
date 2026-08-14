@@ -1,4 +1,4 @@
-"""Public result objects for the multisource TDOA pipeline."""
+"""Public result objects for the BioLoc pipeline."""
 
 from __future__ import annotations
 
@@ -240,7 +240,7 @@ class PipelineResult:
     association: AssociationResult
     localization: LocalizationResult
     reconstruction: ReconstructionResult
-    classification: ClassificationResult | None
+    classification: ClassificationResult
     timings: dict[str, float] = field(default_factory=dict)
 
 

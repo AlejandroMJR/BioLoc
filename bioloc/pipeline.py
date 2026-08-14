@@ -1,14 +1,15 @@
-"""One-shot composition of the six public processing stages."""
+"""One-shot composition of the seven public processing stages."""
 
 from __future__ import annotations
 
 from time import perf_counter
 
 from .association import associate_tdoas
+from .classifiers import BirdNETClassifier, PerchClassifier
 from .config import PipelineConfig
 from .local_tdoa import estimate_local_tdoas
 from .localization import localize_sources
-from .models import PipelineResult, Recording
+from .models import ClassificationResult, PipelineResult, Recording
 from .peak_extraction import extract_tdoa_peaks
 from .reconstruction import SourceClassifier, classify_reconstructed_sources, reconstruct_sources
 from .roi import extract_regions_of_interest
@@ -18,7 +19,6 @@ def run_pipeline(
     recording: Recording,
     config: PipelineConfig | None = None,
     *,
-    classifier: SourceClassifier | None = None,
     plot: bool = False,
     save_plots: bool = False,
 ) -> PipelineResult:
@@ -81,8 +81,15 @@ def run_pipeline(
         config.reconstruction,
         config.local_tdoa,
     )
-    classification = None
-    if classifier is not None:
+    if not reconstruction.sources:
+        classification = ClassificationResult(
+            sources=[],
+            classifier_name=config.classification.backend,
+            sample_rate=reconstruction.sample_rate,
+        )
+        timings["classification"] = 0.0
+    else:
+        classifier = _build_classifier(config)
         classification = _timed(
             timings,
             "classification",
@@ -121,3 +128,20 @@ def _timed(timings: dict[str, float], name: str, function, *args, **kwargs):
     result = function(*args, **kwargs)
     timings[name] = perf_counter() - started
     return result
+
+
+def _build_classifier(config: PipelineConfig) -> SourceClassifier:
+    classification = config.classification
+    if classification.backend == "birdnet":
+        return BirdNETClassifier(min_confidence=classification.min_confidence)
+    if classification.backend == "perch":
+        return PerchClassifier(
+            classification.perch_model,
+            min_confidence=classification.min_confidence,
+            hop_duration=classification.perch_hop_duration,
+            warm_up=classification.perch_warm_up,
+        )
+    raise ValueError(
+        "classification.backend must be 'birdnet' or 'perch', "
+        f"not {classification.backend!r}"
+    )

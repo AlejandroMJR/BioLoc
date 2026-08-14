@@ -135,7 +135,7 @@ def plot_peak_timefrequency_support(
     colors=None,
 ):
     """Return the established per-pair peak-support figures."""
-    from multisource_tdoa.association import _raw_peak_mapping
+    from bioloc.association import _raw_peak_mapping
 
     legacy = _legacy_plotting()
     if colors is None:
@@ -158,18 +158,18 @@ def _pyplot():
     except ImportError as error:
         raise ImportError(
             "The package's plotting dependencies are missing. Reinstall "
-            "`multisource-tdoa` to restore them."
+            "`bioloc` to restore them."
         ) from error
     return plt
 
 
 def _legacy_plotting():
     try:
-        from multisource_tdoa._kernels import plotting as utils
+        from bioloc._kernels import plotting as utils
     except ImportError as error:
         raise ImportError(
             "The package's plotting dependencies are missing. Reinstall "
-            "`multisource-tdoa` to restore them."
+            "`bioloc` to restore them."
         ) from error
     return utils
 

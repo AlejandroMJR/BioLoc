@@ -1,6 +1,6 @@
 """Minimal stage-by-stage API example using arrays supplied by the user."""
 
-from multisource_tdoa import (
+from bioloc import (
     PipelineConfig,
     Recording,
     associate_tdoas,

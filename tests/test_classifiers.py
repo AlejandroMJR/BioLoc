@@ -5,8 +5,8 @@ from unittest.mock import patch
 
 import numpy as np
 
-from multisource_tdoa import BirdNETClassifier, PerchClassifier
-from multisource_tdoa.models import ReconstructedSource
+from bioloc import BirdNETClassifier, PerchClassifier
+from bioloc.models import ReconstructedSource
 
 
 def _source(sample_rate=100, seconds=2):

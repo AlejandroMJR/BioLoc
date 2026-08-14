@@ -3,9 +3,9 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "multisource-tdoa"
+name = "BioLoc"
 version = "0.1.0"
-description = "Multisource acoustic separation and localization using local TDOAs"
+description = "BioLoc: multisource acoustic separation and localization using local TDOAs"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{name = "Alejandro"}]
@@ -19,6 +19,7 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 dependencies = [
+  "birdnetlib>=0.18",
   "contextily",
   "librosa",
   "matplotlib>=3.7",
@@ -31,16 +32,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-birdnet = ["soundfile>=0.12", "librosa", "birdnetlib"]
 perch = ["soundfile>=0.12", "librosa", "perch-hoplite"]
 dev = ["build", "pytest>=7", "pytest-cov", "ruff", "twine"]
 
 [project.scripts]
-multisource-tdoa = "multisource_tdoa.cli:main"
+bioloc = "bioloc.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["multisource_tdoa*"]
+include = ["bioloc*"]
 exclude = ["tests*", "examples*", "Results*", "Output*", "Figures*"]
 
 [tool.pytest.ini_options]

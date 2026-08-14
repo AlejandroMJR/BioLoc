@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from multisource_tdoa import (
+from bioloc import (
     AssociationResult,
     LocalTDOAResult,
     PairLocalTDOAs,
@@ -10,10 +10,10 @@ from multisource_tdoa import (
     classify_reconstructed_sources,
     extract_tdoa_peaks,
 )
-from multisource_tdoa.config import PeakExtractionConfig
-from multisource_tdoa.config import LocalTDOAConfig
-from multisource_tdoa.localization import localize_sources
-from multisource_tdoa.models import (
+from bioloc.config import PeakExtractionConfig
+from bioloc.config import LocalTDOAConfig
+from bioloc.localization import localize_sources
+from bioloc.models import (
     ReconstructedSource,
     ReconstructionResult,
 )
@@ -74,7 +74,7 @@ class PublicAPITest(unittest.TestCase):
         self.assertEqual(result.sources, [])
         self.assertEqual(result.positions.shape, (0, 2))
 
-    def test_classification_is_an_optional_reconstruction_operation(self):
+    def test_reconstructed_sources_can_be_classified(self):
         reconstruction = ReconstructionResult(
             sources=[
                 ReconstructedSource(
