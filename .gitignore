@@ -1,0 +1,27 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+.idea/
+.venv/
+venv/
+.env
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Local regression output (regenerate from examples/current_segment_new_api.py)
+current_segment_new_api.json
+
+# Pipeline-generated artifacts
+Figures/
+Output/
+Results/
+audios/
+
+# Local data, models, and tooling
+Backup/
+models/
+node_modules/

@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multisource-tdoa"
+version = "0.1.0"
+description = "Multisource acoustic separation and localization using local TDOAs"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{name = "Alejandro"}]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = [
+  "contextily",
+  "librosa",
+  "matplotlib>=3.7",
+  "numpy>=1.24",
+  "pyproj",
+  "scipy>=1.10",
+  "scikit-maad>=1.4",
+  "soundfile>=0.12",
+  "xyzservices",
+]
+
+[project.optional-dependencies]
+birdnet = ["soundfile>=0.12", "librosa", "birdnetlib"]
+perch = ["soundfile>=0.12", "librosa", "perch-hoplite"]
+dev = ["build", "pytest>=7", "pytest-cov", "ruff", "twine"]
+
+[project.scripts]
+multisource-tdoa = "multisource_tdoa.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["multisource_tdoa*"]
+exclude = ["tests*", "examples*", "Results*", "Output*", "Figures*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "."]
+python_files = ["test_*.py"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
