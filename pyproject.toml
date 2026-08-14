@@ -21,6 +21,7 @@ classifiers = [
 dependencies = [
   "birdnetlib>=0.18",
   "contextily",
+  "jupyterlab",
   "librosa",
   "matplotlib>=3.7",
   "numpy>=1.24",

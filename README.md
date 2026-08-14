@@ -10,13 +10,27 @@ Clone the private repository, enter its directory, and create an isolated
 environment:
 
 ```bash
-git clone <private-repository-url>
-cd <repository-directory>
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -e .
 ```
+
+On Windows, activate the same `.venv` before installation with either:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+or, from Command Prompt:
+
+```bat
+.venv\Scripts\activate.bat
+```
+
+On Linux systems where Python is exposed as `python3`, use `python3` in the
+environment-creation command. The environment directory is still named
+`.venv` on every operating system.
 
 This installs the package from the current project directory (`.`), including
 all processing, loading, localization, classification, and plotting
@@ -42,15 +56,7 @@ recordings/
 └── positions.csv
 ```
 
-The same loader accepts either of the following CSV representations. A
-headerless file remains compatible with the current recordings:
-
-```text
-49.83592,14.09566,mic-a
-49.83616,14.09531,mic-b
-```
-
-The recommended representation for new datasets includes column names:
+The same loader accepts the following CSV representation with the microphone names and their positions.
 
 ```text
 recorder_id,latitude,longitude
@@ -111,6 +117,25 @@ result.reconstruction.sources[0].signal
 ```
 
 No-source cases return empty lists rather than `None`.
+
+## Examples
+
+`examples/run_full_pipeline.py` is the recommended complete example. Edit its
+input block and run it directly or with the PyCharm Run/Debug buttons:
+
+```bash
+python examples/run_full_pipeline.py
+```
+
+`examples/step_by_step.ipynb` runs the same standardized input through each
+pipeline stage separately. It exposes the intermediate result objects and
+plots ROI masks, local TDOAs, peak histograms and time-frequency support,
+association features, localization, reconstruction masks, and reconstructed
+signals. JupyterLab is included in the standard BioLoc installation:
+
+```bash
+jupyter lab examples/step_by_step.ipynb
+```
 
 ## Stage-by-stage use
 
