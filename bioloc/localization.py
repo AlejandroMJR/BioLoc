@@ -11,6 +11,7 @@ from ._kernels.localization import (
 
 from ._geometry import default_environment_bounds
 from .config import LocalizationConfig, LocalTDOAConfig
+from .io import local_to_gps_coordinates
 from .models import AssociationResult, LocalizationResult, Recording, SourceLocation
 
 
@@ -60,12 +61,20 @@ def localize_sources(
     for source_id, estimate in enumerate(raw_estimates):
         info = estimate.get("info", {})
         position = estimate.get("x_hat")
+        position_array = None if position is None else np.asarray(position, dtype=float)
+        map_info = recording.metadata.get("map_info")
+        gps_position = (
+            None
+            if position_array is None or map_info is None
+            else local_to_gps_coordinates(position_array, map_info)
+        )
         uncertainty = info.get("location_uncertainty_m")
         residual = info.get("residual_rms_samples")
         output.append(
             SourceLocation(
                 source_id=source_id,
-                position=(None if position is None else np.asarray(position, dtype=float)),
+                position=position_array,
+                gps_position=gps_position,
                 uncertainty_m=(None if uncertainty is None else float(uncertainty)),
                 residual_samples=(None if residual is None else float(residual)),
                 boundary_contact=bool(info.get("boundary_contact", False)),

@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-from bioloc import load_recording, read_position_csv
+from bioloc import load_recording, local_to_gps_coordinates, read_position_csv
 
 
 class RecordingLoaderTest(unittest.TestCase):
@@ -41,6 +41,15 @@ class RecordingLoaderTest(unittest.TestCase):
             self.assertAlmostEqual(float(np.mean(recording.signals[0])), 0.1, places=3)
             self.assertAlmostEqual(float(np.mean(recording.signals[1])), 0.2, places=3)
             self.assertEqual(recording.microphone_positions.shape, (2, 2))
+            recovered_gps = local_to_gps_coordinates(
+                recording.microphone_positions,
+                recording.metadata["map_info"],
+            )
+            np.testing.assert_allclose(
+                recovered_gps,
+                np.asarray([[49.0001, 14.0001], [49.0, 14.0]]),
+                atol=1e-10,
+            )
 
     def test_undated_layout_and_headered_csv(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

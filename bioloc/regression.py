@@ -45,6 +45,11 @@ def pipeline_snapshot(result) -> dict:
                     if source.position is None
                     else np.asarray(source.position).tolist()
                 ),
+                "gps_position": (
+                    None
+                    if source.gps_position is None
+                    else np.asarray(source.gps_position).tolist()
+                ),
                 "uncertainty_m": source.uncertainty_m,
                 "residual_samples": source.residual_samples,
                 "boundary_contact": source.boundary_contact,

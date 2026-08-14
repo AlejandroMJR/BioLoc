@@ -19,14 +19,7 @@ python -m pip install -e .
 ```
 
 This installs the package from the current project directory (`.`), including
-all processing, loading, localization, and plotting dependencies. The editable
-flag (`-e`) is convenient while testing because changes to the source code take
-effect without reinstalling the package.
-
-For contributors who also need test, build, and lint tools:
-
-```bash
-python -m pip install -e ".[dev]"
+all processing, loading, localization, and plotting dependencies. 
 ```
 
 ## Input convention
@@ -42,10 +35,12 @@ recording = Recording(
 )
 ```
 
-Signals must be synchronized. Microphone positions and localization outputs use
-metres. Delays use samples unless their field name explicitly says seconds.
-Local TDOA estimation uses the projected ROI mask by default, so only admitted
-pair/band/frame cells contribute delay observations.
+Signals must be synchronized. Geometry is computed in local metres. When the
+standard loader receives microphone positions as latitude/longitude, every
+source location is returned both as local metres (`position_m`) and GPS
+coordinates (`gps_position`, ordered as latitude then longitude). Delays use
+samples unless their field name explicitly says seconds.
+
 
 ## Standard recording loader
 
@@ -117,6 +112,9 @@ result.peaks.for_pair(0, 1).peaks
 result.association.features
 result.association.sources
 result.localization.sources
+result.localization.gps_positions                 # latitude, longitude
+result.localization.sources[0].latitude
+result.localization.sources[0].longitude
 result.reconstruction.sources[0].reconstruction_mask
 result.reconstruction.sources[0].signal
 ```
@@ -229,21 +227,3 @@ style. It contains the ROI overlay, local-TDOA colour map, associated pair
 histograms, peak time-frequency support, final source-mask overlays,
 reconstructed-source spectrograms, and the final hyperbola/localization plot.
 Classifier-input plots and paper-specific debugging figures are not generated.
-
-## Regression comparison
-
-`bioloc.regression.save_pipeline_snapshot` saves compact intermediate
-values to JSON. It includes ROI activity, local TDOA counts and samples, peak
-delays, associated members, locations, mask summaries, reconstructed-signal
-summaries, and classifications.
-
-`examples/current_segment_new_api.py` retains the microphone IDs, date, time,
-and segment boundaries used for the accepted regression segment. Set its
-`DATA_PATH` to a local copy of the synchronized recordings before running it.
-It writes `current_segment_new_api.json` for comparison.
-
-## Project status
-
-This is version `0.1.0` and the API should be considered provisional until the
-legacy segment comparison is accepted. A public release also requires the
-project owner to choose a software license and final package name.

@@ -73,6 +73,7 @@ class PublicAPITest(unittest.TestCase):
         result = localize_sources(association, recording)
         self.assertEqual(result.sources, [])
         self.assertEqual(result.positions.shape, (0, 2))
+        self.assertEqual(result.gps_positions.shape, (0, 2))
 
     def test_reconstructed_sources_can_be_classified(self):
         reconstruction = ReconstructionResult(

@@ -13,7 +13,7 @@ from .config import (
     ReconstructionConfig,
 )
 from .local_tdoa import estimate_local_tdoas
-from .io import load_recording, read_position_csv
+from .io import load_recording, local_to_gps_coordinates, read_position_csv
 from .localization import localize_sources
 from .models import (
     AssociatedSource,
@@ -80,6 +80,7 @@ __all__ = [
     "extract_tdoa_peaks",
     "localize_sources",
     "load_recording",
+    "local_to_gps_coordinates",
     "read_position_csv",
     "reconstruct_sources",
     "run_pipeline",

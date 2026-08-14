@@ -178,7 +178,21 @@ class SourceLocation:
     uncertainty_m: float | None
     residual_samples: float | None
     boundary_contact: bool
+    gps_position: NDArray[np.floating] | None = None
     raw: Mapping[str, Any] = field(default_factory=dict, repr=False)
+
+    @property
+    def position_m(self) -> NDArray[np.floating] | None:
+        """Estimated position in BioLoc's internal local-metre system."""
+        return self.position
+
+    @property
+    def latitude(self) -> float | None:
+        return None if self.gps_position is None else float(self.gps_position[0])
+
+    @property
+    def longitude(self) -> float | None:
+        return None if self.gps_position is None else float(self.gps_position[1])
 
 
 @dataclass
@@ -188,6 +202,18 @@ class LocalizationResult:
     @property
     def positions(self) -> NDArray[np.floating]:
         values = [source.position for source in self.sources if source.position is not None]
+        if not values:
+            return np.empty((0, 2), dtype=float)
+        return np.asarray(values, dtype=float)
+
+    @property
+    def gps_positions(self) -> NDArray[np.floating]:
+        """Estimated source positions as ``[latitude, longitude]`` rows."""
+        values = [
+            source.gps_position
+            for source in self.sources
+            if source.gps_position is not None
+        ]
         if not values:
             return np.empty((0, 2), dtype=float)
         return np.asarray(values, dtype=float)

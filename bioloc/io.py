@@ -182,12 +182,47 @@ def gps_to_local_plot_coordinates(
     plot_origin_local = center - side / 2.0
     centered = local - plot_origin_local
     map_info = {
+        "reference_latitude": reference_latitude,
+        "reference_longitude": reference_longitude,
+        "earth_radius_m": earth_radius_m,
         "plot_origin_local": plot_origin_local,
         "plot_min": np.asarray([0.0, 0.0]),
         "plot_max": np.asarray([side, side]),
         "environment_size": side,
     }
     return centered, map_info
+
+
+def local_to_gps_coordinates(
+    local_positions: np.ndarray,
+    map_info: dict,
+) -> np.ndarray:
+    """Convert BioLoc's internal metre coordinates to latitude/longitude."""
+    positions = np.asarray(local_positions, dtype=float)
+    single_position = positions.ndim == 1
+    positions = np.atleast_2d(positions)
+    if positions.shape[1] != 2:
+        raise ValueError("local_positions must have shape (positions, 2)")
+    required = (
+        "reference_latitude",
+        "reference_longitude",
+        "earth_radius_m",
+        "plot_origin_local",
+    )
+    missing = [key for key in required if key not in map_info]
+    if missing:
+        raise ValueError(f"map_info is missing GPS transform values: {missing}")
+    uncentered = positions + np.asarray(map_info["plot_origin_local"], dtype=float)
+    reference_latitude = float(map_info["reference_latitude"])
+    reference_longitude = float(map_info["reference_longitude"])
+    earth_radius_m = float(map_info["earth_radius_m"])
+    latitude = reference_latitude + np.rad2deg(uncentered[:, 1] / earth_radius_m)
+    longitude = reference_longitude + np.rad2deg(
+        uncentered[:, 0]
+        / (earth_radius_m * np.cos(np.deg2rad(reference_latitude)))
+    )
+    gps = np.column_stack([latitude, longitude])
+    return gps[0] if single_position else gps
 
 
 def _select_recording_path(
