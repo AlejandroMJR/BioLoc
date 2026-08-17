@@ -38,11 +38,80 @@ def main():
     config = PipelineConfig()
     config = replace(
         config,
+
+        # General
+        general=replace(
+            config.general,
+            lowcut_hz=None,
+            highcut_hz=10_000.0,
+            speed_of_sound_m_s=333.0,
+            microphone_position_uncertainty_m=2.0,
+        ),
+
+        # Region-of-interest extraction
+        roi=replace(
+            config.roi,
+            bin_std=10.0,
+            bin_per=0.5,
+            min_roi=10,
+        ),
+
+        # Local TDOA estimation
+        local_tdoa=replace(
+            config.local_tdoa,
+            band_width_hz=800.0,
+            frame_size=2048,
+            k_neighbors=3,
+            filter_mode="fft_mask",
+            workers=4,
+            use_roi_mask=True,
+        ),
+
+        # Histogram and peak extraction
+        peaks=replace(
+            config.peaks,
+            narrow_width_divisor=40.0,
+            wide_to_narrow_ratio=3.0,
+            histogram_sigma_divisor=20.0,
+            support_tolerance_divisor=3.0,
+        ),
+
+        # TDOA association
+        association=replace(
+            config.association,
+            feature="time_frequency_candidates",
+            cosine_threshold=0.7,
+            same_pair_cosine_threshold=0.7,
+            frequency_weight=0.5,
+            prune_geometric_outliers=True,
+            prune_min_relative_improvement=0.3,
+        ),
+
+        # Source localization
+        localization=replace(
+            config.localization,
+            loss="linear",
+            multistart=True,
+            grid_spacing_m=None,
+            n_starts=5,
+        ),
+
+        # Source separation and reconstruction
+        reconstruction=replace(
+            config.reconstruction,
+            reconstruction_frame_size=2048,
+            reject_ambiguous_pair_tf=True,
+            pair_ambiguity_tolerance_samples=None,
+        ),
+
+        # Source classification
         classification=replace(
             config.classification,
-            backend=CLASSIFIER,
-            min_confidence=MIN_CONFIDENCE,
-            perch_model=PERCH_MODEL,
+            backend="birdnet",
+            min_confidence=0.1,
+            perch_model="perch_8",
+            perch_hop_duration=1.0,
+            perch_warm_up=True,
         ),
     )
     result = run_pipeline(
