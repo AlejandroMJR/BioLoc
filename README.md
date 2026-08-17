@@ -108,6 +108,26 @@ result.classification.sources[0].confidence
 result.classification.sources[0].detections
 ```
 
+To see what every returned variable means, ask the result itself:
+
+```python
+print(result.help())
+print(result.help("association"))
+print(result.help("localization"))
+```
+
+The same output reference is available without running the pipeline:
+
+```python
+from bioloc import output_help
+
+print(output_help())
+print(output_help("association"))
+```
+
+Or from a terminal with `bioloc --output-help` and, for example,
+`bioloc --output-help association`.
+
 No-source cases return empty lists rather than `None`.
 
 ### Configuring the complete pipeline

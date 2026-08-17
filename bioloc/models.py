@@ -269,6 +269,12 @@ class ClassificationResult:
 
 @dataclass
 class PipelineResult:
+    """All outputs produced by :func:`bioloc.run_pipeline`.
+
+    Call ``result.help()`` for an overview or, for example,
+    ``result.help("association")`` for one stage.
+    """
+
     roi: ROIResult
     local_tdoas: LocalTDOAResult
     peaks: PeakExtractionResult
@@ -277,6 +283,119 @@ class PipelineResult:
     reconstruction: ReconstructionResult
     classification: ClassificationResult
     timings: dict[str, float] = field(default_factory=dict)
+
+    def help(self, section: str | None = None) -> str:
+        """Return readable descriptions of the public pipeline outputs."""
+        return output_help(section)
+
+
+_OUTPUT_HELP = {
+    "roi": (
+        "Region-of-interest extraction output.",
+        (
+            ("masks_by_pair", "ROI Boolean mask for every microphone pair."),
+            ("for_pair(i, j)", "ROI mask for one microphone pair."),
+            ("microphone_masks", "ROI Boolean mask detected independently for each microphone."),
+        ),
+    ),
+    "local_tdoas": (
+        "Local time-delay observations measured across time and frequency.",
+        (
+            ("pairs", "Mapping from microphone pair to its local-TDOA observations."),
+            ("for_pair(i, j).delays", "Delay observations for a pair, in samples."),
+            ("for_pair(i, j).band_indices", "Frequency-band index of each delay observation."),
+            ("for_pair(i, j).frame_indices", "Time-frame index of each delay observation."),
+            ("frequency_bands_hz", "Frequency limits represented by every band index."),
+            ("frame_times_seconds", "Time represented by every frame index."),
+        ),
+    ),
+    "peaks": (
+        "Per-pair TDOA histograms and their detected peaks.",
+        (
+            ("pairs", "Mapping from microphone pair to its histogram and peaks."),
+            ("for_pair(i, j).histogram", "Smoothed histogram values for one pair."),
+            ("for_pair(i, j).delay_bins", "Histogram delay axis, in samples."),
+            ("for_pair(i, j).peaks", "Detected candidate delays and their time-frequency support."),
+        ),
+    ),
+    "association": (
+        "TDOA peaks grouped into candidate acoustic sources.",
+        (
+            ("features", "Feature vector computed for every pairwise TDOA peak."),
+            ("sources", "Candidate sources; each is a group of compatible TDOAs from different microphone pairs."),
+            ("sources[*].source_id", "Identifier connecting this source to localization, reconstruction, and classification."),
+            ("sources[*].members", "Associated pairwise TDOAs belonging to this candidate source."),
+            ("features_for_pair(i, j)", "Feature vectors belonging to one microphone pair."),
+            ("pruning_reports", "Reports from optional geometric-outlier removal."),
+        ),
+    ),
+    "localization": (
+        "Position and localization-quality estimate for every associated source.",
+        (
+            ("sources", "One SourceLocation corresponding to each successfully processed associated source."),
+            ("sources[*].position_m", "Source coordinates in the internal local-metre system."),
+            ("sources[*].latitude / longitude", "GPS coordinates, when the recording was loaded from GPS positions."),
+            ("sources[*].uncertainty_m", "Estimated location uncertainty in metres."),
+            ("sources[*].residual_samples", "RMS mismatch between measured and predicted TDOAs, in samples."),
+            ("sources[*].boundary_contact", "Whether the estimate touches the allowed environment boundary."),
+            ("positions", "Convenience NumPy array containing all available local-metre positions."),
+            ("gps_positions", "Convenience NumPy array containing all available [latitude, longitude] positions."),
+        ),
+    ),
+    "reconstruction": (
+        "Separated signals reconstructed for the localized sources.",
+        (
+            ("sources", "Reconstructed source signals and their final reconstruction masks."),
+            ("sources[*].signal", "Reconstructed mono signal aligned to its reference microphone."),
+            ("sources[*].reconstruction_mask", "Final time-frequency mask used for reconstruction."),
+            ("sources[*].reference_microphone", "Index of the microphone to which the signal is aligned."),
+            ("sources[*].relative_delays_samples", "Estimated delay of every microphone relative to the reference."),
+            ("sample_rate", "Sampling rate of reconstructed signals, in hertz."),
+        ),
+    ),
+    "classification": (
+        "Classifier output for every reconstructed source.",
+        (
+            ("sources", "One classification result per reconstructed source."),
+            ("sources[*].label", "Highest-confidence retained class label, or None."),
+            ("sources[*].confidence", "Confidence of the selected label, or None."),
+            ("sources[*].detections", "Complete detections returned by the selected classifier."),
+            ("classifier_name", "Name of the classifier that produced the results."),
+        ),
+    ),
+    "timings": (
+        "Runtime of each pipeline stage in seconds.",
+        (("timings", "Mapping from stage name to elapsed wall-clock seconds."),),
+    ),
+}
+
+
+def output_help(section: str | None = None) -> str:
+    """Return readable help for public pipeline result variables.
+
+    Parameters
+    ----------
+    section:
+        A pipeline result name such as ``"association"`` or ``"localization"``.
+        Omit it to describe all outputs.
+    """
+    requested = None if section is None else str(section).strip().lower().replace("-", "_")
+    if requested in (None, "", "all"):
+        section_names = list(_OUTPUT_HELP)
+    elif requested in _OUTPUT_HELP:
+        section_names = [requested]
+    else:
+        valid = ", ".join(_OUTPUT_HELP)
+        raise ValueError(f"Unknown output section {section!r}; choose from {valid}")
+
+    lines = ["BioLoc pipeline outputs"]
+    for section_name in section_names:
+        summary, variables = _OUTPUT_HELP[section_name]
+        lines.extend((f"\n{section_name}", f"  {summary}"))
+        for variable, description in variables:
+            lines.append(f"  {variable}")
+            lines.append(f"    {description}")
+    return "\n".join(lines)
 
 
 def _ordered_pair(first: int, second: int) -> Pair:

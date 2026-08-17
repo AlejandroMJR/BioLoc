@@ -36,6 +36,7 @@ from .models import (
     SourceClassification,
     SourceLocation,
     TDOAPeak,
+    output_help,
 )
 from .peak_extraction import extract_tdoa_peaks
 from .pipeline import run_pipeline
@@ -86,6 +87,7 @@ __all__ = [
     "load_recording",
     "local_to_gps_coordinates",
     "read_position_csv",
+    "output_help",
     "reconstruct_sources",
     "run_pipeline",
 ]

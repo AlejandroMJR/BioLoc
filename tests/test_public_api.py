@@ -9,6 +9,7 @@ from bioloc import (
     PairLocalTDOAs,
     Recording,
     config_help,
+    output_help,
     classify_reconstructed_sources,
     extract_tdoa_peaks,
 )
@@ -30,6 +31,15 @@ from bioloc.models import (
 
 
 class PublicAPITest(unittest.TestCase):
+    def test_output_help_describes_nested_stage_results(self):
+        all_help = output_help()
+        association_help = output_help("association")
+        self.assertIn("localization", all_help)
+        self.assertIn("sources[*].members", association_help)
+        self.assertIn("compatible TDOAs", association_help)
+        with self.assertRaises(ValueError):
+            output_help("missing")
+
     def test_config_help_lists_defaults_and_supports_sections(self):
         all_help = config_help()
         local_help = config_help("local_tdoa")
