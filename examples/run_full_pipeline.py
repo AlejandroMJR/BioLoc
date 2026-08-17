@@ -14,7 +14,6 @@ RECORDING_DATE = "20260102"  # Set to None when WAVs are directly inside ID fold
 RECORDING_TIME = "030405"    # Set to None when each selected folder has one WAV.
 START_SECONDS = 0.0
 DURATION_SECONDS = 5.0
-ENVIRONMENT_MARGIN_M = 100.0
 
 CLASSIFIER = "birdnet"       # "birdnet" or "perch"
 MIN_CONFIDENCE = 0.1
@@ -32,7 +31,6 @@ def main():
         recording_time=RECORDING_TIME,
         start_seconds=START_SECONDS,
         duration_seconds=DURATION_SECONDS,
-        environment_margin_m=ENVIRONMENT_MARGIN_M,
     )
 
     config = PipelineConfig()
@@ -46,6 +44,7 @@ def main():
             highcut_hz=10_000.0,
             speed_of_sound_m_s=333.0,
             microphone_position_uncertainty_m=2.0,
+            environment_margin_m=100.0,
         ),
 
         # Region-of-interest extraction

@@ -33,17 +33,15 @@ def nearest_neighbor_pairs(
 def recording_environment_bounds(
     recording,
     *,
-    fallback_margin_m: float = 100.0,
+    margin_m: float = 100.0,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Return the localization bounds prepared by the recording loader."""
-    map_info = recording.metadata.get("map_info")
-    if map_info is not None and "plot_min" in map_info and "plot_max" in map_info:
-        return (
-            np.asarray(map_info["plot_min"], dtype=float),
-            np.asarray(map_info["plot_max"], dtype=float),
-        )
+    """Return square search bounds around the microphone array."""
     positions = np.asarray(recording.microphone_positions, dtype=float)
-    lower = np.min(positions, axis=0)
-    upper = np.max(positions, axis=0)
-    margin = float(fallback_margin_m)
-    return lower - margin, upper + margin
+    margin = float(margin_m)
+    if margin < 0:
+        raise ValueError("environment_margin_m must be non-negative")
+    position_min = np.min(positions, axis=0)
+    position_max = np.max(positions, axis=0)
+    center = 0.5 * (position_min + position_max)
+    side = max(float(np.max(position_max - position_min)) + 2.0 * margin, 1.0)
+    return center - side / 2.0, center + side / 2.0

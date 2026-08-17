@@ -54,7 +54,7 @@ class PublicAPITest(unittest.TestCase):
         expected = {
             GeneralConfig: {
                 "lowcut_hz", "highcut_hz", "speed_of_sound_m_s",
-                "microphone_position_uncertainty_m",
+                "microphone_position_uncertainty_m", "environment_margin_m",
             },
             ROIConfig: {"bin_std", "bin_per", "min_roi"},
             LocalTDOAConfig: {

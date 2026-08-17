@@ -8,6 +8,7 @@ import numpy as np
 from scipy import signal
 
 from bioloc._kernels import plotting as legacy
+from bioloc._geometry import recording_environment_bounds
 
 
 def plot_roi_stage(recording, roi, config, *, pair=None, show=True):
@@ -260,10 +261,16 @@ def plot_localization_stage(
     if association.sources:
         colors = _cluster_colors(association)
         figure, axis = plt.subplots(figsize=(20, 20))
-        environment_size = _environment_size(recording)
+        lower, upper = recording_environment_bounds(
+            recording,
+            margin_m=config.general.environment_margin_m,
+        )
+        environment_size = float(upper[0] - lower[0])
+        plot_microphones = recording.microphone_positions - lower
+        plot_positions = localization.positions - lower
         legacy.plot_sources_hyperbolas(
             association.raw_sources,
-            recording.microphone_positions,
+            plot_microphones,
             recording.sample_rate,
             environment_size,
             ax=axis,
@@ -273,10 +280,15 @@ def plot_localization_stage(
             c=association.speed_of_sound_m_s,
             clip_impossible=True,
         )
-        _add_satellite_background_if_available(axis, recording)
+        _add_satellite_background_if_available(
+            axis,
+            recording,
+            coordinate_shift=lower,
+            environment_size=environment_size,
+        )
         legacy.plot_truth_vs_estimates(
-            micPos=recording.microphone_positions,
-            estPos=localization.positions,
+            micPos=plot_microphones,
+            estPos=plot_positions,
             srcPos=None,
             roomDims=environment_size,
             ax=axis,
@@ -352,26 +364,33 @@ def _global_reference_db(values, sample_rate):
     return float(20.0 * np.log10(np.max(np.abs(spectrum)) + 1e-12))
 
 
-def _environment_size(recording):
-    map_info = recording.metadata.get("map_info")
-    if map_info is not None and "environment_size" in map_info:
-        return float(map_info["environment_size"])
-    positions = recording.microphone_positions
-    span = np.max(positions, axis=0) - np.min(positions, axis=0)
-    return float(max(np.max(span), 1.0))
-
-
-def _add_satellite_background_if_available(axis, recording):
+def _add_satellite_background_if_available(
+    axis,
+    recording,
+    *,
+    coordinate_shift=None,
+    environment_size=None,
+):
     metadata = recording.metadata
     required = ("gps_groups_for_map", "local_groups_for_map", "map_info")
     if not all(name in metadata for name in required):
         return
     try:
+        local_groups = np.asarray(metadata["local_groups_for_map"], dtype=float)
+        map_info = dict(metadata["map_info"])
+        if coordinate_shift is not None:
+            local_groups = local_groups - np.asarray(coordinate_shift, dtype=float)
+        if environment_size is not None:
+            map_info["plot_min"] = np.asarray([0.0, 0.0])
+            map_info["plot_max"] = np.asarray(
+                [environment_size, environment_size], dtype=float
+            )
+            map_info["environment_size"] = float(environment_size)
         legacy.add_satellite_background_to_local_axes(
             axis,
             gps_groups=metadata["gps_groups_for_map"],
-            local_groups_centered=metadata["local_groups_for_map"],
-            map_info=metadata["map_info"],
+            local_groups_centered=local_groups,
+            map_info=map_info,
             zoom=18,
             alpha=0.4,
         )

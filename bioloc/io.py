@@ -21,7 +21,6 @@ def load_recording(
     recording_time: str | int | None = None,
     start_seconds: float = 0.0,
     duration_seconds: float | None = None,
-    environment_margin_m: float = 100.0,
     require_sync: bool = True,
 ) -> Recording:
     """Load a standardized synchronized microphone-array recording.
@@ -78,10 +77,7 @@ def load_recording(
     )
 
     gps_positions = np.asarray([gps_by_id[value] for value in requested_ids])
-    microphone_positions, map_info = gps_to_local_plot_coordinates(
-        gps_positions,
-        context_margin_m=environment_margin_m,
-    )
+    microphone_positions, map_info = gps_to_local_plot_coordinates(gps_positions)
     return Recording(
         signals=signals,
         sample_rate=sample_rate,
@@ -157,15 +153,11 @@ def read_position_csv(path: str | Path) -> dict[str, np.ndarray]:
 
 def gps_to_local_plot_coordinates(
     gps_positions: np.ndarray,
-    *,
-    context_margin_m: float = 100.0,
 ) -> tuple[np.ndarray, dict[str, np.ndarray | float]]:
-    """Convert latitude/longitude to a shared square local-metre domain."""
+    """Convert GPS positions to a stable local-metre coordinate system."""
     gps_positions = np.asarray(gps_positions, dtype=float)
     if gps_positions.ndim != 2 or gps_positions.shape[1] != 2:
         raise ValueError("gps_positions must have shape (recorders, 2)")
-    if float(context_margin_m) < 0:
-        raise ValueError("environment_margin_m must be non-negative")
     reference_latitude = float(np.mean(gps_positions[:, 0]))
     reference_longitude = float(np.mean(gps_positions[:, 1]))
     earth_radius_m = 6_371_000.0
@@ -184,7 +176,7 @@ def gps_to_local_plot_coordinates(
     local_min = np.min(local, axis=0)
     local_max = np.max(local, axis=0)
     center = 0.5 * (local_min + local_max)
-    side = float(max(np.max(local_max - local_min) + 2.0 * context_margin_m, 1.0))
+    side = float(max(np.max(local_max - local_min), 1.0))
     plot_origin_local = center - side / 2.0
     centered = local - plot_origin_local
     map_info = {
@@ -195,7 +187,6 @@ def gps_to_local_plot_coordinates(
         "plot_min": np.asarray([0.0, 0.0]),
         "plot_max": np.asarray([side, side]),
         "environment_size": side,
-        "environment_margin_m": float(context_margin_m),
     }
     return centered, map_info
 

@@ -75,6 +75,7 @@ class ROIResult:
     highcut_hz: float | None = 10_000.0
     speed_of_sound_m_s: float = 333.0
     microphone_position_uncertainty_m: float = 2.0
+    environment_margin_m: float = 100.0
 
     def for_pair(self, first: int, second: int) -> NDArray[np.bool_]:
         return self.masks_by_pair[_ordered_pair(first, second)]
@@ -108,6 +109,7 @@ class LocalTDOAResult:
     )
     speed_of_sound_m_s: float = 333.0
     microphone_position_uncertainty_m: float = 2.0
+    environment_margin_m: float = 100.0
 
     def for_pair(self, first: int, second: int) -> PairLocalTDOAs:
         return self.pairs[_ordered_pair(first, second)]
@@ -174,6 +176,7 @@ class AssociationResult:
     pruning_reports: list[dict[str, Any]] = field(default_factory=list)
     speed_of_sound_m_s: float = 333.0
     microphone_position_uncertainty_m: float = 2.0
+    environment_margin_m: float = 100.0
 
     def features_for_pair(self, first: int, second: int) -> list[PeakFeature]:
         pair = _ordered_pair(first, second)

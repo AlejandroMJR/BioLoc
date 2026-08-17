@@ -76,4 +76,5 @@ def extract_regions_of_interest(
         microphone_position_uncertainty_m=(
             general_config.microphone_position_uncertainty_m
         ),
+        environment_margin_m=general_config.environment_margin_m,
     )

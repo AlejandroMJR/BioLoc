@@ -24,7 +24,10 @@ def localize_sources(
     config = config or LocalizationConfig()
     if not association.raw_sources:
         return LocalizationResult(sources=[])
-    bounds = recording_environment_bounds(recording)
+    bounds = recording_environment_bounds(
+        recording,
+        margin_m=association.environment_margin_m,
+    )
     grid_spacing = config.grid_spacing_m
     if grid_spacing is None:
         grid_spacing = max(float(np.max(bounds[1] - bounds[0])) / 4.0, 1.0)

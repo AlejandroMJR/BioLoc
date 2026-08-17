@@ -34,6 +34,7 @@ def estimate_local_tdoas(
             microphone_position_uncertainty_m=(
                 roi.microphone_position_uncertainty_m
             ),
+            environment_margin_m=roi.environment_margin_m,
         )
     else:
         general = GeneralConfig()
@@ -42,6 +43,8 @@ def estimate_local_tdoas(
         raise ValueError("speed_of_sound_m_s must be positive")
     if general.microphone_position_uncertainty_m < 0:
         raise ValueError("microphone_position_uncertainty_m must be non-negative")
+    if general.environment_margin_m < 0:
+        raise ValueError("environment_margin_m must be non-negative")
     pairs = nearest_neighbor_pairs(
         recording.microphone_positions,
         config.k_neighbors,
@@ -161,6 +164,7 @@ def estimate_local_tdoas(
         microphone_position_uncertainty_m=(
             general.microphone_position_uncertainty_m
         ),
+        environment_margin_m=general.environment_margin_m,
     )
 
 

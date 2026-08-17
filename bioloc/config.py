@@ -11,6 +11,7 @@ class GeneralConfig:
     highcut_hz: float | None = 10_000.0
     speed_of_sound_m_s: float = 333.0
     microphone_position_uncertainty_m: float = 2.0
+    environment_margin_m: float = 100.0
 
 
 @dataclass(frozen=True)
@@ -90,6 +91,7 @@ _CONFIG_DESCRIPTIONS = {
         "highcut_hz": "Upper frequency limit in Hz; None keeps frequencies to Nyquist.",
         "speed_of_sound_m_s": "Speed of sound used for TDOA geometry, in metres per second.",
         "microphone_position_uncertainty_m": "Expected uncertainty of each microphone position, in metres.",
+        "environment_margin_m": "Search-area margin around the microphone array, in metres.",
     },
     "roi": {
         "bin_std": "Relative threshold width used to create the MAAD ROI mask.",

@@ -85,7 +85,10 @@ def associate_tdoas(
             / float(local_tdoas.hop_size * ASSOCIATION_FRAMES_PER_BIN)
         )
     )
-    lower, upper = recording_environment_bounds(recording)
+    lower, upper = recording_environment_bounds(
+        recording,
+        margin_m=local_tdoas.environment_margin_m,
+    )
     span = float(np.max(upper - lower))
     grid_spacing = max(span / 4.0, 1.0)
 
@@ -158,6 +161,7 @@ def associate_tdoas(
         microphone_position_uncertainty_m=(
             local_tdoas.microphone_position_uncertainty_m
         ),
+        environment_margin_m=local_tdoas.environment_margin_m,
     )
 
 

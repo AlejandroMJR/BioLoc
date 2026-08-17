@@ -61,7 +61,6 @@ recording = load_recording(
     recording_time="030405",
     start_seconds=10,
     duration_seconds=5,
-    environment_margin_m=100,
 )
 ```
 
@@ -70,9 +69,9 @@ recording = load_recording(
 With no date or time selector, each selected folder must contain exactly one
 eligible synchronized WAV file.
 
-`environment_margin_m` controls the searchable area surrounding the microphone
-array. BioLoc computes the local square domain and passes the same bounds to
-association, localization, GPS conversion, and plotting automatically.
+`config.general.environment_margin_m` controls the searchable area surrounding
+the microphone array. BioLoc passes the same bounds to association,
+localization, and plotting automatically.
 
 Geometry is computed in local metres. Every estimated source is returned both
 as local metres (`position_m`) and GPS coordinates (`gps_position`, ordered as
