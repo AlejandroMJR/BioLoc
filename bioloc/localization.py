@@ -9,8 +9,8 @@ from ._kernels.localization import (
     include_mic_position_uncertainty,
 )
 
-from ._geometry import default_environment_bounds
-from .config import LocalizationConfig, LocalTDOAConfig
+from ._geometry import recording_environment_bounds
+from .config import LocalizationConfig
 from .io import local_to_gps_coordinates
 from .models import AssociationResult, LocalizationResult, Recording, SourceLocation
 
@@ -19,33 +19,21 @@ def localize_sources(
     association: AssociationResult,
     recording: Recording,
     config: LocalizationConfig | None = None,
-    local_tdoa_config: LocalTDOAConfig | None = None,
 ) -> LocalizationResult:
     """Estimate one position and quality record per associated source."""
     config = config or LocalizationConfig()
-    local_config = local_tdoa_config or LocalTDOAConfig()
     if not association.raw_sources:
         return LocalizationResult(sources=[])
-    if config.environment_bounds is None:
-        bounds = default_environment_bounds(recording.microphone_positions)
-    else:
-        bounds = (
-            np.asarray(config.environment_bounds[0], dtype=float),
-            np.asarray(config.environment_bounds[1], dtype=float),
-        )
+    bounds = recording_environment_bounds(recording)
     grid_spacing = config.grid_spacing_m
     if grid_spacing is None:
         grid_spacing = max(float(np.max(bounds[1] - bounds[0])) / 4.0, 1.0)
-    f_scale = (
-        2.0 / recording.sample_rate
-        if config.f_scale_seconds is None
-        else config.f_scale_seconds
-    )
+    f_scale = 2.0 / recording.sample_rate
     raw_estimates = estimate_all_sources_positions(
         sources=association.raw_sources,
         mic_positions=recording.microphone_positions,
         fs=recording.sample_rate,
-        c=local_config.speed_of_sound_m_s,
+        c=association.speed_of_sound_m_s,
         env_bounds=bounds,
         loss=config.loss,
         f_scale=f_scale,
@@ -55,7 +43,7 @@ def localize_sources(
     )
     include_mic_position_uncertainty(
         raw_estimates,
-        local_config.microphone_position_uncertainty_m,
+        association.microphone_position_uncertainty_m,
     )
     output = []
     for source_id, estimate in enumerate(raw_estimates):

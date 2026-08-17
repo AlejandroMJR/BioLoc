@@ -13,8 +13,12 @@ from ._kernels.association import (
 )
 from ._kernels.localization import prune_geometrically_inconsistent_sources
 
-from ._geometry import default_environment_bounds
-from .config import AssociationConfig, LocalTDOAConfig
+from ._geometry import recording_environment_bounds
+from .config import AssociationConfig
+from ._defaults import (
+    ASSOCIATION_FRAMES_PER_BIN,
+    ASSOCIATION_MAX_EXACT_COMBINATIONS,
+)
 from .models import (
     AssociatedSource,
     AssociatedTDOA,
@@ -45,7 +49,7 @@ def build_feature_vectors(
                     peak.raw,
                     n_bands=n_bands,
                     n_frames=n_frames,
-                    frames_per_bin=config.frames_per_bin,
+                    frames_per_bin=ASSOCIATION_FRAMES_PER_BIN,
                 )
             features.append(
                 PeakFeature(
@@ -63,11 +67,9 @@ def associate_tdoas(
     local_tdoas: LocalTDOAResult,
     recording: Recording,
     config: AssociationConfig | None = None,
-    local_tdoa_config: LocalTDOAConfig | None = None,
 ) -> AssociationResult:
     """Build peak features and group compatible pairwise delays into sources."""
     config = config or AssociationConfig()
-    local_config = local_tdoa_config or LocalTDOAConfig()
     features = build_feature_vectors(peaks, local_tdoas, config)
     raw_pairs = _raw_peak_mapping(peaks)
     n_bands = len(local_tdoas.frequency_bands_hz)
@@ -80,14 +82,10 @@ def associate_tdoas(
     max_shift_bins = int(
         np.ceil(
             maximum_delay
-            / float(local_tdoas.hop_size * config.frames_per_bin)
+            / float(local_tdoas.hop_size * ASSOCIATION_FRAMES_PER_BIN)
         )
     )
-    if config.environment_bounds is None:
-        lower, upper = default_environment_bounds(recording.microphone_positions)
-    else:
-        lower = np.asarray(config.environment_bounds[0], dtype=float)
-        upper = np.asarray(config.environment_bounds[1], dtype=float)
+    lower, upper = recording_environment_bounds(recording)
     span = float(np.max(upper - lower))
     grid_spacing = max(span / 4.0, 1.0)
 
@@ -98,15 +96,15 @@ def associate_tdoas(
             n_frames=n_frames,
             mic_positions=recording.microphone_positions,
             fs=recording.sample_rate,
-            c=local_config.speed_of_sound_m_s,
+            c=local_tdoas.speed_of_sound_m_s,
             env_bounds=(lower, upper),
-            frames_per_bin=config.frames_per_bin,
+            frames_per_bin=ASSOCIATION_FRAMES_PER_BIN,
             max_shift_bins=max_shift_bins,
             alpha=config.frequency_weight,
             cosine_thresh=config.cosine_threshold,
             inpair_cosine_thresh=config.same_pair_cosine_threshold,
             min_tdoas_per_source=minimum_members,
-            max_exact_combinations=config.max_exact_combinations,
+            max_exact_combinations=ASSOCIATION_MAX_EXACT_COMBINATIONS,
             grid_spacing=grid_spacing,
             n_starts=5,
             max_sources=None,
@@ -116,7 +114,7 @@ def associate_tdoas(
             raw_pairs,
             n_bands=n_bands,
             n_frames=n_frames,
-            frames_per_bin=config.frames_per_bin,
+            frames_per_bin=ASSOCIATION_FRAMES_PER_BIN,
             max_shift_bins=max_shift_bins,
             alpha=config.frequency_weight,
             cosine_thresh=config.cosine_threshold,
@@ -144,7 +142,7 @@ def associate_tdoas(
             raw_sources,
             mic_positions=recording.microphone_positions,
             fs=recording.sample_rate,
-            c=local_config.speed_of_sound_m_s,
+            c=local_tdoas.speed_of_sound_m_s,
             env_bounds=(lower, upper),
             min_tdoas_per_source=minimum_members,
             min_relative_improvement=config.prune_min_relative_improvement,
@@ -156,6 +154,10 @@ def associate_tdoas(
         sources=sources,
         raw_sources=raw_sources,
         pruning_reports=pruning_reports,
+        speed_of_sound_m_s=local_tdoas.speed_of_sound_m_s,
+        microphone_position_uncertainty_m=(
+            local_tdoas.microphone_position_uncertainty_m
+        ),
     )
 
 

@@ -14,6 +14,8 @@ dist/
 
 # Local regression output (regenerate from examples/current_segment_new_api.py)
 current_segment_new_api.json
+examples/current_segment_new_api.json
+examples/current_segment_new_api.py
 
 # Pipeline-generated artifacts
 Figures/

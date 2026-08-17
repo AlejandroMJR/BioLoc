@@ -14,6 +14,7 @@ RECORDING_DATE = "20260102"  # Set to None when WAVs are directly inside ID fold
 RECORDING_TIME = "030405"    # Set to None when each selected folder has one WAV.
 START_SECONDS = 0.0
 DURATION_SECONDS = 5.0
+ENVIRONMENT_MARGIN_M = 100.0
 
 CLASSIFIER = "birdnet"       # "birdnet" or "perch"
 MIN_CONFIDENCE = 0.1
@@ -31,15 +32,12 @@ def main():
         recording_time=RECORDING_TIME,
         start_seconds=START_SECONDS,
         duration_seconds=DURATION_SECONDS,
+        environment_margin_m=ENVIRONMENT_MARGIN_M,
     )
-    environment_size = float(recording.metadata["map_info"]["environment_size"])
-    bounds = ((0.0, 0.0), (environment_size, environment_size))
 
     config = PipelineConfig()
     config = replace(
         config,
-        association=replace(config.association, environment_bounds=bounds),
-        localization=replace(config.localization, environment_bounds=bounds),
         classification=replace(
             config.classification,
             backend=CLASSIFIER,

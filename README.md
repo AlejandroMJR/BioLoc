@@ -16,22 +16,6 @@ python -m pip install --upgrade pip
 python -m pip install -e .
 ```
 
-On Windows, activate the same `.venv` before installation with either:
-
-```powershell
-.venv\Scripts\Activate.ps1
-```
-
-or, from Command Prompt:
-
-```bat
-.venv\Scripts\activate.bat
-```
-
-On Linux systems where Python is exposed as `python3`, use `python3` in the
-environment-creation command. The environment directory is still named
-`.venv` on every operating system.
-
 This installs the package from the current project directory (`.`), including
 all processing, loading, localization, classification, and plotting
 dependencies.
@@ -77,6 +61,7 @@ recording = load_recording(
     recording_time="030405",
     start_seconds=10,
     duration_seconds=5,
+    environment_margin_m=100,
 )
 ```
 
@@ -84,6 +69,10 @@ recording = load_recording(
 `recording_date=None`, files are read directly from each recorder-ID folder.
 With no date or time selector, each selected folder must contain exactly one
 eligible synchronized WAV file.
+
+`environment_margin_m` controls the searchable area surrounding the microphone
+array. BioLoc computes the local square domain and passes the same bounds to
+association, localization, GPS conversion, and plotting automatically.
 
 Geometry is computed in local metres. Every estimated source is returned both
 as local metres (`position_m`) and GPS coordinates (`gps_position`, ordered as
@@ -114,9 +103,90 @@ result.localization.sources[0].latitude
 result.localization.sources[0].longitude
 result.reconstruction.sources[0].reconstruction_mask
 result.reconstruction.sources[0].signal
+result.classification.sources[0].label
+result.classification.sources[0].confidence
+result.classification.sources[0].detections
 ```
 
 No-source cases return empty lists rather than `None`.
+
+### Configuring the complete pipeline
+
+Every supported processing parameter remains configurable when using
+`run_pipeline`. Update the relevant immutable configuration section with
+`dataclasses.replace`:
+
+```python
+from dataclasses import replace
+from bioloc import PipelineConfig, run_pipeline
+
+config = PipelineConfig()
+config = replace(
+    config,
+    general=replace(
+        config.general,
+        highcut_hz=8_000,
+    ),
+    local_tdoa=replace(
+        config.local_tdoa,
+        band_width_hz=600,
+    ),
+    reconstruction=replace(
+        config.reconstruction,
+        reconstruction_frame_size=4096,
+    ),
+)
+result = run_pipeline(recording, config)
+```
+
+Frequency-band overlap is fixed internally to half of `band_width_hz`.
+`grid_spacing_m=None` derives the localization grid from the recording
+environment. `pair_ambiguity_tolerance_samples=None` derives the ambiguity
+tolerance from each pair's peak-support tolerance.
+
+Shared physical and frequency-range settings live in `config.general`:
+
+```python
+config.general.lowcut_hz
+config.general.highcut_hz
+config.general.speed_of_sound_m_s
+config.general.microphone_position_uncertainty_m
+```
+
+BioLoc filters the synchronized signals once during ROI extraction. The same
+filtered signals are reused for local TDOA estimation and source
+reconstruction, matching the original pipeline without repeating the filter.
+
+To see every available parameter, its default and a short explanation:
+
+```python
+from bioloc import config_help
+
+print(config_help())
+print(config_help("local_tdoa"))
+```
+
+The same help is available from a terminal:
+
+```bash
+bioloc --config-help
+bioloc --config-help local_tdoa
+```
+
+Printing `PipelineConfig()` also gives a compact view of all current values.
+BirdNET is the default classifier. To use Perch, install its runtime and select
+the backend:
+
+```bash
+python -m pip install -e ".[perch]"
+```
+
+```python
+config = replace(
+    config,
+    classification=replace(config.classification, backend="perch"),
+)
+```
 
 ## Examples
 
@@ -149,14 +219,14 @@ from bioloc import (
     reconstruct_sources,
 )
 
-roi = extract_regions_of_interest(recording, config.roi, config.local_tdoa)
-local = estimate_local_tdoas(recording, roi, config.local_tdoa, config.roi)
+roi = extract_regions_of_interest(recording, config.roi, config.general)
+local = estimate_local_tdoas(recording, roi, config.local_tdoa)
 peaks = extract_tdoa_peaks(local, config.peaks)
 association = associate_tdoas(
-    peaks, local, recording, config.association, config.local_tdoa
+    peaks, local, recording, config.association
 )
 locations = localize_sources(
-    association, recording, config.localization, config.local_tdoa
+    association, recording, config.localization
 )
 reconstruction = reconstruct_sources(
     recording,
@@ -165,65 +235,11 @@ reconstruction = reconstruct_sources(
     association,
     locations,
     config.reconstruction,
-    config.local_tdoa,
 )
 ```
 
 Feature construction is part of association. `association.features` exposes the
 exact vectors used by that step.
-
-## Classification
-
-Classification is the final pipeline stage. BirdNET is the default and is
-installed with the package. It classifies the most active window of every
-reconstructed source and retains every returned detection:
-
-```python
-result = run_pipeline(recording, config)
-
-result.classification.sources[0].label
-result.classification.sources[0].confidence
-result.classification.sources[0].detections
-```
-
-To use Perch instead, install its model runtime and select it in the pipeline
-configuration:
-
-```bash
-python -m pip install -e ".[perch]"
-```
-
-```python
-from dataclasses import replace
-
-config = replace(
-    config,
-    classification=replace(config.classification, backend="perch"),
-)
-result = run_pipeline(recording, config)
-```
-
-The standalone classification function remains available for users supplying a
-different classifier implementing `classify(signal, sample_rate)`:
-
-```python
-from bioloc import classify_reconstructed_sources
-
-class MyClassifier:
-    name = "my-classifier"
-
-    def classify(self, signal, sample_rate):
-        return {
-            "label": "target",
-            "confidence": 0.91,
-            "detections": [],
-        }
-
-classifications = classify_reconstructed_sources(
-    reconstruction,
-    MyClassifier(),
-)
-```
 
 ## Plotting
 

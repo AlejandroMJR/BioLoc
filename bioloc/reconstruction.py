@@ -18,7 +18,7 @@ from ._kernels.tdoa import (
 )
 from .association import _raw_peak_mapping
 from ._timefreq import hz_seconds_to_stft_sigma, hz_seconds_to_tf_size
-from .config import LocalTDOAConfig, ReconstructionConfig
+from .config import ReconstructionConfig
 from .models import (
     AssociationResult,
     ClassificationResult,
@@ -30,6 +30,20 @@ from .models import (
     Recording,
     SourceClassification,
 )
+
+_MORPH_THRESHOLD = 0.0
+_MORPH_CORE_GAIN = 1.0
+_MORPH_CONTEXT_GAIN = 1.0
+_MORPH_MIN_AREA = 4
+_MORPH_POST_CLOSE_FREQ_HZ = 800.0
+_MORPH_POST_CLOSE_TIME_SECONDS = 0.1
+_MASK_TAPER_FREQ_HZ = 0.0
+_MASK_TAPER_TIME_SECONDS = 0.0
+_FILL_MODE = "white_noise"
+_NOISE_LEVEL = 0.0
+_TARGET_SNR_DB = 0.0
+_WHITE_NOISE_LEVEL_MODE = "inside_noise_floor"
+_RANDOM_STATE = 0
 
 
 class SourceClassifier(Protocol):
@@ -48,11 +62,9 @@ def reconstruct_sources(
     association: AssociationResult,
     localization: LocalizationResult,
     config: ReconstructionConfig | None = None,
-    local_tdoa_config: LocalTDOAConfig | None = None,
 ) -> ReconstructionResult:
     """Create final aligned masks and reconstruct every associated source."""
     config = config or ReconstructionConfig()
-    local_config = local_tdoa_config or LocalTDOAConfig()
     if not association.raw_sources:
         return ReconstructionResult(
             sources=[],
@@ -77,7 +89,7 @@ def reconstruct_sources(
             mic_positions=recording.microphone_positions,
             source_positions=positions,
             fs=recording.sample_rate,
-            c=local_config.speed_of_sound_m_s,
+            c=local_tdoas.speed_of_sound_m_s,
             reject_ambiguous_pair_tf=config.reject_ambiguous_pair_tf,
             pair_ambiguity_tolerance_samples=(
                 config.pair_ambiguity_tolerance_samples
@@ -100,7 +112,7 @@ def reconstruct_sources(
             mic_positions=recording.microphone_positions,
             source_positions=positions,
             fs=recording.sample_rate,
-            c=local_config.speed_of_sound_m_s,
+            c=local_tdoas.speed_of_sound_m_s,
             reject_ambiguous_pair_tf=False,
         )
 
@@ -161,7 +173,12 @@ def reconstruct_sources(
         used_mics_by_source,
         source_reference_mics,
     )
-    selected_signals = [recording.signals[index] for index in reference_mics]
+    reconstruction_signals = (
+        local_tdoas.filtered_signals
+        if local_tdoas.filtered_signals is not None
+        else recording.signals
+    )
+    selected_signals = [reconstruction_signals[index] for index in reference_mics]
     aligned_masks, _ = shift_source_maps_between_mics(
         soft_masks,
         association.raw_sources,
@@ -199,12 +216,14 @@ def reconstruct_sources(
             hop=local_tdoas.hop_size,
         )
 
-    reconstruction_frame_size = int(config.frame_size)
+    reconstruction_frame_size = int(config.reconstruction_frame_size)
+    if reconstruction_frame_size <= 0:
+        raise ValueError("reconstruction_frame_size must be positive")
     reconstruction_overlap = reconstruction_frame_size // 2
     reconstruction_hop = reconstruction_frame_size - reconstruction_overlap
     taper_frequency, taper_time = hz_seconds_to_stft_sigma(
-        config.mask_taper_freq_hz,
-        config.mask_taper_time_seconds,
+        _MASK_TAPER_FREQ_HZ,
+        _MASK_TAPER_TIME_SECONDS,
         recording.sample_rate,
         reconstruction_frame_size,
         reconstruction_hop,
@@ -226,14 +245,14 @@ def reconstruct_sources(
         mask_threshold=0.0,
         border_smooth_freq_bins=taper_frequency,
         border_smooth_time_frames=taper_time,
-        noise_level=config.noise_level,
-        target_snr_db=config.target_snr_db,
-        replacement_mode=config.fill_mode,
-        white_noise_level_mode=config.white_noise_level_mode,
+        noise_level=_NOISE_LEVEL,
+        target_snr_db=_TARGET_SNR_DB,
+        replacement_mode=_FILL_MODE,
+        white_noise_level_mode=_WHITE_NOISE_LEVEL_MODE,
         mic_roi_masks_high_res=None,
         roi_nperseg=1024,
         roi_noverlap=512,
-        random_state=config.random_state,
+        random_state=_RANDOM_STATE,
         fallback_source_masks=fallback_soft_masks,
         fallback_source_mask_allowed=[count > 0 for count in rejected_counts],
         return_diagnostics=True,
@@ -327,17 +346,15 @@ def _morph_maps(
         open_size = close_size = dilate_size = post_close_size = (0, 0)
         min_area = 2
     else:
-        open_size = size(config.morph_open_freq_hz, config.morph_open_time_seconds)
-        close_size = size(config.morph_close_freq_hz, config.morph_close_time_seconds)
-        dilate_size = size(config.morph_dilate_freq_hz, config.morph_dilate_time_seconds)
+        open_size = close_size = dilate_size = (0, 0)
         post_close_size = size(
-            config.morph_post_close_freq_hz,
-            config.morph_post_close_time_seconds,
+            _MORPH_POST_CLOSE_FREQ_HZ,
+            _MORPH_POST_CLOSE_TIME_SECONDS,
         )
-        min_area = config.morph_min_area
+        min_area = _MORPH_MIN_AREA
     return morph_source_maps(
         maps,
-        threshold=config.morph_threshold,
+        threshold=_MORPH_THRESHOLD,
         open_size=open_size,
         close_size=close_size,
         min_area=min_area,
@@ -345,8 +362,8 @@ def _morph_maps(
         area_filter_position="after_close",
         dilate_size=dilate_size,
         post_area_close_size=post_close_size,
-        core_gain=config.morph_core_gain,
-        context_gain=config.morph_context_gain,
+        core_gain=_MORPH_CORE_GAIN,
+        context_gain=_MORPH_CONTEXT_GAIN,
     )
 
 

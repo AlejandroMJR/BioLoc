@@ -1,4 +1,5 @@
 import unittest
+from dataclasses import fields
 
 import numpy as np
 
@@ -7,11 +8,20 @@ from bioloc import (
     LocalTDOAResult,
     PairLocalTDOAs,
     Recording,
+    config_help,
     classify_reconstructed_sources,
     extract_tdoa_peaks,
 )
 from bioloc.config import PeakExtractionConfig
-from bioloc.config import LocalTDOAConfig
+from bioloc.config import (
+    AssociationConfig,
+    ClassificationConfig,
+    GeneralConfig,
+    LocalizationConfig,
+    LocalTDOAConfig,
+    ROIConfig,
+    ReconstructionConfig,
+)
 from bioloc.localization import localize_sources
 from bioloc.models import (
     ReconstructedSource,
@@ -20,6 +30,51 @@ from bioloc.models import (
 
 
 class PublicAPITest(unittest.TestCase):
+    def test_config_help_lists_defaults_and_supports_sections(self):
+        all_help = config_help()
+        local_help = config_help("local_tdoa")
+        self.assertIn("general", all_help)
+        self.assertIn("classification", all_help)
+        self.assertIn("band_width_hz = 800.0", local_help)
+        self.assertNotIn("speed_of_sound_m_s", local_help)
+        with self.assertRaises(ValueError):
+            config_help("missing")
+
+    def test_configuration_exposes_only_supported_user_controls(self):
+        expected = {
+            GeneralConfig: {
+                "lowcut_hz", "highcut_hz", "speed_of_sound_m_s",
+                "microphone_position_uncertainty_m",
+            },
+            ROIConfig: {"bin_std", "bin_per", "min_roi"},
+            LocalTDOAConfig: {
+                "band_width_hz", "frame_size", "k_neighbors", "filter_mode",
+                "workers", "use_roi_mask",
+            },
+            PeakExtractionConfig: {
+                "narrow_width_divisor", "wide_to_narrow_ratio",
+                "histogram_sigma_divisor", "support_tolerance_divisor",
+            },
+            AssociationConfig: {
+                "feature", "cosine_threshold", "same_pair_cosine_threshold",
+                "frequency_weight", "prune_geometric_outliers",
+                "prune_min_relative_improvement",
+            },
+            LocalizationConfig: {
+                "loss", "multistart", "grid_spacing_m", "n_starts",
+            },
+            ReconstructionConfig: {
+                "reconstruction_frame_size", "reject_ambiguous_pair_tf",
+                "pair_ambiguity_tolerance_samples",
+            },
+            ClassificationConfig: {
+                "backend", "min_confidence", "perch_model",
+                "perch_hop_duration", "perch_warm_up",
+            },
+        }
+        for config_type, names in expected.items():
+            self.assertEqual({field.name for field in fields(config_type)}, names)
+
     def test_roi_mask_is_enabled_by_default(self):
         self.assertTrue(LocalTDOAConfig().use_roi_mask)
 

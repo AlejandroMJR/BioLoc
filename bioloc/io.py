@@ -21,6 +21,7 @@ def load_recording(
     recording_time: str | int | None = None,
     start_seconds: float = 0.0,
     duration_seconds: float | None = None,
+    environment_margin_m: float = 100.0,
     require_sync: bool = True,
 ) -> Recording:
     """Load a standardized synchronized microphone-array recording.
@@ -77,7 +78,10 @@ def load_recording(
     )
 
     gps_positions = np.asarray([gps_by_id[value] for value in requested_ids])
-    microphone_positions, map_info = gps_to_local_plot_coordinates(gps_positions)
+    microphone_positions, map_info = gps_to_local_plot_coordinates(
+        gps_positions,
+        context_margin_m=environment_margin_m,
+    )
     return Recording(
         signals=signals,
         sample_rate=sample_rate,
@@ -160,6 +164,8 @@ def gps_to_local_plot_coordinates(
     gps_positions = np.asarray(gps_positions, dtype=float)
     if gps_positions.ndim != 2 or gps_positions.shape[1] != 2:
         raise ValueError("gps_positions must have shape (recorders, 2)")
+    if float(context_margin_m) < 0:
+        raise ValueError("environment_margin_m must be non-negative")
     reference_latitude = float(np.mean(gps_positions[:, 0]))
     reference_longitude = float(np.mean(gps_positions[:, 1]))
     earth_radius_m = 6_371_000.0
@@ -189,6 +195,7 @@ def gps_to_local_plot_coordinates(
         "plot_min": np.asarray([0.0, 0.0]),
         "plot_max": np.asarray([side, side]),
         "environment_size": side,
+        "environment_margin_m": float(context_margin_m),
     }
     return centered, map_info
 

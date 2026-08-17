@@ -5,12 +5,14 @@ from .classifiers import BirdNETClassifier, PerchClassifier
 from .config import (
     AssociationConfig,
     ClassificationConfig,
+    GeneralConfig,
     LocalizationConfig,
     LocalTDOAConfig,
     PeakExtractionConfig,
     PipelineConfig,
     ROIConfig,
     ReconstructionConfig,
+    config_help,
 )
 from .local_tdoa import estimate_local_tdoas
 from .io import load_recording, local_to_gps_coordinates, read_position_csv
@@ -51,6 +53,7 @@ __all__ = [
     "AssociationResult",
     "ClassificationResult",
     "ClassificationConfig",
+    "GeneralConfig",
     "LocalizationConfig",
     "LocalizationResult",
     "LocalTDOAConfig",
@@ -75,6 +78,7 @@ __all__ = [
     "associate_tdoas",
     "build_feature_vectors",
     "classify_reconstructed_sources",
+    "config_help",
     "estimate_local_tdoas",
     "extract_regions_of_interest",
     "extract_tdoa_peaks",

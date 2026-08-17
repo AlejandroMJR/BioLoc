@@ -1045,7 +1045,7 @@ def associate_tdoa_peaks_by_timefreq_candidates_geometric(
     greedy constraint is then applied to these logical nodes. Finally, one
     original TDOA per selected group is chosen by minimum global geometric RMS.
     """
-    from .posEstimator import fit_source_and_geometric_residuals
+    from .localization import fit_source_and_geometric_residuals
 
     alpha = float(alpha)
     if not 0.0 <= alpha <= 1.0:

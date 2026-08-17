@@ -13,7 +13,8 @@ from ._kernels.tdoa import (
 )
 
 from ._geometry import nearest_neighbor_pairs
-from .config import LocalTDOAConfig, ROIConfig
+from .config import GeneralConfig, LocalTDOAConfig
+from ._defaults import ROI_NOVERLAP, ROI_NPERSEG
 from .models import LocalTDOAResult, PairLocalTDOAs, ROIResult, Recording
 
 
@@ -21,12 +22,26 @@ def estimate_local_tdoas(
     recording: Recording,
     roi: ROIResult | None = None,
     config: LocalTDOAConfig | None = None,
-    roi_config: ROIConfig | None = None,
 ) -> LocalTDOAResult:
     """Estimate one local delay observation per valid pair/band/frame cell."""
     config = config or LocalTDOAConfig()
-    roi_config = roi_config or ROIConfig()
-    signals = _filter_signals(recording.signals, recording.sample_rate, config)
+    if roi is not None and roi.filtered_signals is not None:
+        signals = np.asarray(roi.filtered_signals, dtype=float)
+        general = GeneralConfig(
+            lowcut_hz=roi.lowcut_hz,
+            highcut_hz=roi.highcut_hz,
+            speed_of_sound_m_s=roi.speed_of_sound_m_s,
+            microphone_position_uncertainty_m=(
+                roi.microphone_position_uncertainty_m
+            ),
+        )
+    else:
+        general = GeneralConfig()
+        signals = _filter_signals(recording.signals, recording.sample_rate, general)
+    if general.speed_of_sound_m_s <= 0:
+        raise ValueError("speed_of_sound_m_s must be positive")
+    if general.microphone_position_uncertainty_m < 0:
+        raise ValueError("microphone_position_uncertainty_m must be non-negative")
     pairs = nearest_neighbor_pairs(
         recording.microphone_positions,
         config.k_neighbors,
@@ -34,35 +49,31 @@ def estimate_local_tdoas(
     iu = np.asarray([pair[0] for pair in pairs], dtype=int)
     ju = np.asarray([pair[1] for pair in pairs], dtype=int)
 
-    uncertainty = np.sqrt(2.0) * config.microphone_position_uncertainty_m
+    uncertainty = np.sqrt(2.0) * general.microphone_position_uncertainty_m
     distances = np.linalg.norm(
         recording.microphone_positions[iu] - recording.microphone_positions[ju],
         axis=1,
     )
     maximum_delays = np.ceil(
-        distances / config.speed_of_sound_m_s * recording.sample_rate
+        distances / general.speed_of_sound_m_s * recording.sample_rate
     ).astype(int)
     maximum_delays += int(
-        uncertainty / config.speed_of_sound_m_s * recording.sample_rate
+        uncertainty / general.speed_of_sound_m_s * recording.sample_rate
     )
 
     frame_size = int(config.frame_size)
     if frame_size <= 0:
         raise ValueError("frame_size must be positive")
     hop_size = frame_size // 2
-    overlap_hz = (
-        config.band_width_hz / 2.0
-        if config.band_overlap_hz is None
-        else config.band_overlap_hz
-    )
+    overlap_hz = config.band_width_hz / 2.0
     omega_list, frequency_bands = build_frequency_bands(
         fs=recording.sample_rate,
         nfft=frame_size,
-        fmin=0.0 if config.lowcut_hz is None else config.lowcut_hz,
+        fmin=0.0 if general.lowcut_hz is None else general.lowcut_hz,
         fmax=(
             recording.sample_rate / 2.0
-            if config.highcut_hz is None
-            else config.highcut_hz
+            if general.highcut_hz is None
+            else general.highcut_hz
         ),
         omega_size_hz=config.band_width_hz,
         overlap_hz=overlap_hz,
@@ -101,8 +112,8 @@ def estimate_local_tdoas(
             ju=ju,
             nfft_alg=frame_size,
             hop_alg=hop_size,
-            nperseg_maad=roi_config.nperseg,
-            noverlap_maad=roi_config.noverlap,
+            nperseg_maad=ROI_NPERSEG,
+            noverlap_maad=ROI_NOVERLAP,
             pair_mode="max",
             force_last_frame=False,
             roi_masks=np.asarray(roi.microphone_masks),
@@ -121,7 +132,7 @@ def estimate_local_tdoas(
         valid_mask=(projected_roi_mask if config.use_roi_mask else None),
         force_last_frame=False,
         filter_mode=config.filter_mode,
-        correlation_mode=config.correlation_mode,
+        correlation_mode="norm_cc",
         workers=config.workers,
     )
 
@@ -146,17 +157,23 @@ def estimate_local_tdoas(
         algorithm_frequency_bins=tuple(np.asarray(x, dtype=int) for x in omega_list),
         projected_roi_mask=projected_roi_mask,
         filtered_signals=signals,
+        speed_of_sound_m_s=general.speed_of_sound_m_s,
+        microphone_position_uncertainty_m=(
+            general.microphone_position_uncertainty_m
+        ),
     )
 
 
 def _filter_signals(
     signals: np.ndarray,
     sample_rate: float,
-    config: LocalTDOAConfig,
+    config: GeneralConfig,
 ) -> np.ndarray:
     lowcut, highcut = config.lowcut_hz, config.highcut_hz
     if lowcut is not None and lowcut < 0:
         raise ValueError("lowcut_hz must be non-negative")
+    if highcut is not None and highcut <= 0:
+        raise ValueError("highcut_hz must be positive")
     if highcut is not None and highcut >= sample_rate / 2:
         raise ValueError("highcut_hz must be below Nyquist")
     if lowcut is not None and highcut is not None and lowcut >= highcut:

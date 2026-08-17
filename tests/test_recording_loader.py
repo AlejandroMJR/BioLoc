@@ -41,9 +41,16 @@ class RecordingLoaderTest(unittest.TestCase):
             self.assertAlmostEqual(float(np.mean(recording.signals[0])), 0.1, places=3)
             self.assertAlmostEqual(float(np.mean(recording.signals[1])), 0.2, places=3)
             self.assertEqual(recording.microphone_positions.shape, (2, 2))
+            map_info = recording.metadata["map_info"]
+            self.assertEqual(map_info["environment_margin_m"], 100.0)
+            np.testing.assert_allclose(map_info["plot_min"], [0.0, 0.0])
+            np.testing.assert_allclose(
+                map_info["plot_max"],
+                [map_info["environment_size"], map_info["environment_size"]],
+            )
             recovered_gps = local_to_gps_coordinates(
                 recording.microphone_positions,
-                recording.metadata["map_info"],
+                map_info,
             )
             np.testing.assert_allclose(
                 recovered_gps,

@@ -32,7 +32,7 @@ def run_pipeline(
         extract_regions_of_interest,
         recording,
         config.roi,
-        config.local_tdoa,
+        config.general,
     )
     local_tdoas = _timed(
         timings,
@@ -41,7 +41,6 @@ def run_pipeline(
         recording,
         roi,
         config.local_tdoa,
-        config.roi,
     )
     peaks = _timed(
         timings,
@@ -58,7 +57,6 @@ def run_pipeline(
         local_tdoas,
         recording,
         config.association,
-        config.local_tdoa,
     )
     localization = _timed(
         timings,
@@ -67,7 +65,6 @@ def run_pipeline(
         association,
         recording,
         config.localization,
-        config.local_tdoa,
     )
     reconstruction = _timed(
         timings,
@@ -79,7 +76,6 @@ def run_pipeline(
         association,
         localization,
         config.reconstruction,
-        config.local_tdoa,
     )
     if not reconstruction.sources:
         classification = ClassificationResult(
