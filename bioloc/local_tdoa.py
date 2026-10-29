@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from operator import index as integer_index
+
 import numpy as np
 from scipy.signal import butter, filtfilt
 
@@ -15,16 +18,47 @@ from ._kernels.tdoa import (
 from ._geometry import nearest_neighbor_pairs
 from .config import GeneralConfig, LocalTDOAConfig
 from ._defaults import ROI_NOVERLAP, ROI_NPERSEG
-from .models import LocalTDOAResult, PairLocalTDOAs, ROIResult, Recording
+from .models import LocalTDOAResult, Pair, PairLocalTDOAs, ROIResult, Recording
 
 
 def estimate_local_tdoas(
     recording: Recording,
     roi: ROIResult | None = None,
     config: LocalTDOAConfig | None = None,
+    *,
+    pairs: Sequence[Pair] | None = None,
 ) -> LocalTDOAResult:
-    """Estimate one local delay observation per valid pair/band/frame cell."""
+    """Estimate one local delay observation per valid pair/band/frame cell.
+
+    ``pairs`` selects zero-based microphone pairs instead of using
+    ``config.k_neighbors``. Reversed pairs are normalized to ascending index
+    order and duplicates are removed, preserving the first occurrence.
+    An explicit selection must contain at least one valid pair.
+    """
     config = config or LocalTDOAConfig()
+    if pairs is None:
+        pairs = nearest_neighbor_pairs(
+            recording.microphone_positions, config.k_neighbors,
+        )
+    else:
+        selected = []
+        for pair in pairs:
+            try:
+                first, second = pair
+                first, second = integer_index(first), integer_index(second)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("each pair must contain two integer microphone indices") from exc
+            if not (0 <= first < recording.n_microphones and
+                    0 <= second < recording.n_microphones):
+                raise ValueError("microphone pair index is out of range")
+            if first == second:
+                raise ValueError("a microphone pair must contain two distinct indices")
+            normalized = (min(first, second), max(first, second))
+            if normalized not in selected:
+                selected.append(normalized)
+        if not selected:
+            raise ValueError("pairs must contain at least one microphone pair")
+        pairs = selected
     if roi is not None and roi.filtered_signals is not None:
         signals = np.asarray(roi.filtered_signals, dtype=float)
         general = GeneralConfig(
@@ -45,10 +79,6 @@ def estimate_local_tdoas(
         raise ValueError("microphone_position_uncertainty_m must be non-negative")
     if general.environment_margin_m < 0:
         raise ValueError("environment_margin_m must be non-negative")
-    pairs = nearest_neighbor_pairs(
-        recording.microphone_positions,
-        config.k_neighbors,
-    )
     iu = np.asarray([pair[0] for pair in pairs], dtype=int)
     ju = np.asarray([pair[1] for pair in pairs], dtype=int)
 
