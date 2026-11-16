@@ -7,7 +7,7 @@ name = "BioLoc"
 version = "0.1.0"
 description = "BioLoc: multisource acoustic separation and localization using local TDOAs"
 readme = "README.md"
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.10"
 authors = [{name = "Alejandro"}]
 classifiers = [
   "Development Status :: 3 - Alpha",
