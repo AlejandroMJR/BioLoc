@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from ._defaults import SPEED_OF_SOUND_M_S
+
 from dataclasses import dataclass, field
 from typing import Any, Iterator, Mapping
 
@@ -73,7 +75,7 @@ class ROIResult:
     filtered_signals: NDArray[np.floating] | None = field(default=None, repr=False)
     lowcut_hz: float | None = None
     highcut_hz: float | None = 10_000.0
-    speed_of_sound_m_s: float = 333.0
+    speed_of_sound_m_s: float = SPEED_OF_SOUND_M_S
     microphone_position_uncertainty_m: float = 2.0
     environment_margin_m: float = 100.0
 
@@ -107,7 +109,7 @@ class LocalTDOAResult:
     filtered_signals: NDArray[np.floating] | None = field(
         default=None, repr=False
     )
-    speed_of_sound_m_s: float = 333.0
+    speed_of_sound_m_s: float = SPEED_OF_SOUND_M_S
     microphone_position_uncertainty_m: float = 2.0
     environment_margin_m: float = 100.0
 
@@ -174,7 +176,7 @@ class AssociationResult:
     sources: list[AssociatedSource]
     raw_sources: list[dict[str, Any]] = field(default_factory=list, repr=False)
     pruning_reports: list[dict[str, Any]] = field(default_factory=list)
-    speed_of_sound_m_s: float = 333.0
+    speed_of_sound_m_s: float = SPEED_OF_SOUND_M_S
     microphone_position_uncertainty_m: float = 2.0
     environment_margin_m: float = 100.0
 

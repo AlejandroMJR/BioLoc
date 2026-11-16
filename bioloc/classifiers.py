@@ -2,13 +2,34 @@
 
 from __future__ import annotations
 
+import csv
+from functools import lru_cache
+from pathlib import Path
 from fractions import Fraction
+import sys
 from time import perf_counter
 from typing import Any
 
 import numpy as np
 
 from .models import ReconstructedSource
+
+
+def _birdnet_import_error(error: ImportError) -> ImportError:
+    if sys.version_info >= (3, 13):
+        return ImportError(
+            "BirdNET classification is not supported by BioLoc on Python "
+            f"{sys.version_info.major}.{sys.version_info.minor}. Use supported "
+            "Python 3.10-3.12 (Python 3.11 is recommended). Python removed "
+            "the audioop module in 3.13, but BirdNET's current pydub dependency "
+            "still imports it. Create a new compatible environment and reinstall "
+            "BioLoc there."
+        )
+    return ImportError(
+        "BirdNET could not import one of its runtime dependencies. Reinstall "
+        "BioLoc in a supported Python 3.10-3.12 environment. Original import "
+        f"error: {error}"
+    )
 
 
 class BirdNETClassifier:
@@ -32,10 +53,7 @@ class BirdNETClassifier:
             try:
                 from birdnetlib.analyzer import Analyzer
             except ImportError as error:
-                raise ImportError(
-                    "BirdNET classification requires "
-                    "Reinstall `BioLoc` to restore its BirdNET dependency."
-                ) from error
+                raise _birdnet_import_error(error) from error
             analyzer = Analyzer()
         self.analyzer = analyzer
         self.min_confidence = float(min_confidence)
@@ -70,10 +88,7 @@ class BirdNETClassifier:
         try:
             from birdnetlib import RecordingBuffer
         except ImportError as error:
-            raise ImportError(
-                "BirdNET classification requires "
-                "Reinstall `BioLoc` to restore its BirdNET dependency."
-            ) from error
+            raise _birdnet_import_error(error) from error
         recording = RecordingBuffer(
             self.analyzer,
             analyzed,
@@ -176,7 +191,11 @@ class PerchClassifier:
         if outputs.logits is None:
             raise ValueError("Perch output does not contain classification logits")
         detections = self._detections_from_logits(outputs.logits)
-        label, confidence = _best_detection(detections)
+        species = [
+            d for d in detections
+            if d["label_namespace"] in ("ebird2021", "inat2024", "inat2024_fsd50k")
+        ]
+        label, confidence = _best_detection(species or detections)
         return {
             "label": label,
             "confidence": confidence,
@@ -215,6 +234,7 @@ class PerchClassifier:
                         "class_name": label,
                         "label": label,
                         "label_namespace": namespace,
+                        **_perch_detection_names(label, namespace),
                         "confidence": float(frame[int(class_index)]),
                         "start_time": frame_index * self.hop_duration,
                         "end_time": (
@@ -223,6 +243,37 @@ class PerchClassifier:
                         ),
                     })
         return detections
+
+
+@lru_cache(maxsize=1)
+def _perch_species_names():
+    """Load the bundled official eBird 2021 code/name table once, offline."""
+    path = Path(__file__).resolve().parent / "data/perch_ebird2021_names.csv"
+    with path.open(encoding="utf-8", newline="") as stream:
+        rows = list(csv.DictReader(stream))
+    by_code = {
+        row["species_code"]: {
+            "common_name": row["common_name"],
+            "scientific_name": row["scientific_name"],
+        }
+        for row in rows
+    }
+    by_scientific_name = {
+        names["scientific_name"]: names for names in by_code.values()
+    }
+    return by_code, by_scientific_name
+
+
+def _perch_detection_names(class_name, label_namespace):
+    by_code, by_scientific_name = _perch_species_names()
+    if label_namespace == "ebird2021":
+        return by_code.get(class_name, {})
+    if label_namespace in ("inat2024", "inat2024_fsd50k"):
+        # Perch v2 uses scientific names, mixed with non-species audio labels.
+        # Only annotate exact taxonomy matches; do not invent names for sounds.
+        return by_scientific_name.get(class_name, {})
+    return {}
+
 
 
 def _match_perch_class_head(class_lists: Any, output_head: str, size: int) -> str:

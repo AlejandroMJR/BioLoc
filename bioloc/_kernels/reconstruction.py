@@ -1,3 +1,5 @@
+from .._defaults import SPEED_OF_SOUND_M_S
+
 import numpy as np
 
 # === Helper functions for shifting source masks between microphones ===
@@ -93,7 +95,7 @@ def build_source_tf_maps_aligned_to_mic(
     source_positions=None,
     fallback_ref="first_used",
     fs=None,
-    c=343.0,
+    c=SPEED_OF_SOUND_M_S,
     reject_ambiguous_pair_tf=False,
     pair_ambiguity_tolerance_samples=None,
 ):

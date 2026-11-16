@@ -1,3 +1,5 @@
+from .._defaults import SPEED_OF_SOUND_M_S
+
 import numpy as np
 from scipy.optimize import least_squares
 
@@ -6,7 +8,7 @@ def estimate_source_position_from_tdoas(
     mic_positions,
     tdoa_measurements,
     fs,
-    c=343.0,
+    c=SPEED_OF_SOUND_M_S,
     x0=None,
     bounds=None,
     loss="huber",
@@ -279,7 +281,7 @@ def estimate_all_sources_positions(
     sources,
     mic_positions,
     fs,
-    c=343.0,
+    c=SPEED_OF_SOUND_M_S,
     env_bounds=None,
     loss="huber",
     f_scale=0.002,

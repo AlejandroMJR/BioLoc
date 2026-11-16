@@ -1,3 +1,5 @@
+from .._defaults import SPEED_OF_SOUND_M_S
+
 import os
 import glob
 import numpy as np
@@ -89,7 +91,7 @@ def build_peak_cluster_map(sources):
             peak2cid[(tuple(m["pair"]), int(m["peak_idx"]))] = cid
     return peak2cid
 
-def theoretical_tdoas(src_positions, mic_positions, c=343.0, fs=None):
+def theoretical_tdoas(src_positions, mic_positions, c=SPEED_OF_SOUND_M_S, fs=None):
     src_positions = np.asarray(src_positions)
     mic_positions = np.asarray(mic_positions)
     src_positions = src_positions.reshape(-1, src_positions.shape[-1])
@@ -341,7 +343,7 @@ def plot_room(micPos, srcPos, roomDims, ax=None,
 
 
 def plot_tdoa_hyperbola(m0, m1, tdoa,
-                        fs=None, c=343.0,
+                        fs=None, c=SPEED_OF_SOUND_M_S,
                         xlim=(0, 1), ylim=(0, 1),
                         n_points=400, ax=None,
                         color=None, linestyle="--", linewidths=1.0, alpha=1.0,
@@ -841,7 +843,7 @@ def plot_sources_hyperbolas(
     fs,
     env_size,
     ax=None,
-    c=343.0,
+    c=SPEED_OF_SOUND_M_S,
     alpha=0.8,
     linewidth=HYPERBOLA_LINEWIDTH,
     show_legend=True,
@@ -1005,7 +1007,7 @@ def plot_all_pairs_hyperbolas(
     env_size,
     srcPos=None,
     ax=None,
-    c=343.0,
+    c=SPEED_OF_SOUND_M_S,
     alpha=0.5,
     linewidth=HYPERBOLA_LINEWIDTH,
     color_by="none",

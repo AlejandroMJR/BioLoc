@@ -154,11 +154,11 @@ def plot_association_stage(
     *,
     show=True,
 ):
-    """Plot only the time-frequency supports produced by association."""
+    """Plot peak supports; pass association=None to omit source assignments."""
     import matplotlib.pyplot as plt
 
     legacy.set_plot_style(base_font=24)
-    colors = _cluster_colors(association)
+    colors = _cluster_colors(association) if association is not None else None
     figures = []
 
     raw_peak_mapping = _raw_peak_mapping(peaks)
@@ -170,7 +170,7 @@ def plot_association_stage(
             hop=local_tdoas.hop_size,
             fs=local_tdoas.sample_rate,
             frames_per_bin=1,
-            sources=association.raw_sources,
+            sources=association.raw_sources if association is not None else None,
             cid2color=colors,
         )
         for pair, figure in support_figures.items():

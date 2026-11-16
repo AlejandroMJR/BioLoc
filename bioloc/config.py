@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from ._defaults import SPEED_OF_SOUND_M_S
+
 from dataclasses import dataclass, field
 
 
@@ -9,7 +11,7 @@ from dataclasses import dataclass, field
 class GeneralConfig:
     lowcut_hz: float | None = None
     highcut_hz: float | None = 10_000.0
-    speed_of_sound_m_s: float = 333.0
+    speed_of_sound_m_s: float = SPEED_OF_SOUND_M_S
     microphone_position_uncertainty_m: float = 2.0
     environment_margin_m: float = 100.0
 
