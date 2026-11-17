@@ -42,7 +42,7 @@ _MASK_TAPER_TIME_SECONDS = 0.0
 _FILL_MODE = "white_noise"
 _NOISE_LEVEL = 0.0
 _TARGET_SNR_DB = 0.0
-_WHITE_NOISE_LEVEL_MODE = "inside_noise_floor"
+_WHITE_NOISE_LEVEL_MODE = "event_noise_floor"
 _RANDOM_STATE = 0
 
 

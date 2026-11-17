@@ -3918,7 +3918,7 @@ def fill_outside_source_mask_with_white_noise(
     noise_level=1.0,
     target_snr_db=None,
     replacement_mode="white_noise",
-    white_noise_level_mode="target_snr",
+    white_noise_level_mode="event_noise_floor",
     mic_roi_masks_high_res=None,
     roi_nperseg=1024,
     roi_noverlap=512,
@@ -3965,7 +3965,12 @@ def fill_outside_source_mask_with_white_noise(
         noise uses ``white_noise_level_mode="inside_noise_floor"``.
     replacement_mode : {"white_noise", "scaled_original"}
         Content used outside the source mask.
-    white_noise_level_mode : {"target_snr", "inside_noise_floor"}
+    white_noise_level_mode : {"target_snr", "inside_noise_floor", "event_noise_floor"}
+        event_noise_floor estimates the lower-energy population from the full
+        event in analyzed frequency bands, independent of the source mask.
+        Boundary frames containing zero padding are excluded. Calibration uses
+        generated noise on the same bins. Unlike inside_noise_floor, this mode
+        does not expand a sparse source mask through the mask fallback.
         In white-noise mode, either retain the previous target-SNR/noise-level
         behavior or estimate the lower-energy population of log-STFT powers
         inside the mask and match the generated white noise to it.
@@ -4034,10 +4039,11 @@ def fill_outside_source_mask_with_white_noise(
         raise ValueError(
             "replacement_mode must be 'white_noise' or 'scaled_original'"
         )
-    if white_noise_level_mode not in {"target_snr", "inside_noise_floor"}:
+    floor_mode = white_noise_level_mode in {"inside_noise_floor", "event_noise_floor"}
+    if white_noise_level_mode not in {"target_snr", "inside_noise_floor", "event_noise_floor"}:
         raise ValueError(
             "white_noise_level_mode must be 'target_snr' or "
-            "'inside_noise_floor'"
+            "'inside_noise_floor' or 'event_noise_floor'"
         )
     if target_snr_db is not None:
         target_snr_db = float(target_snr_db)
@@ -4318,13 +4324,34 @@ def fill_outside_source_mask_with_white_noise(
                 padded=True,
             )
 
-            if white_noise_level_mode == "inside_noise_floor":
+            estimation_weight = None
+            if floor_mode:
+                if white_noise_level_mode == "event_noise_floor":
+                    # Project all analyzed bands over the full event, using
+                    # the same frequency mapping as the source masks.
+                    estimation_weight = _project_mask(
+                        np.ones_like(source_masks[source_idx]),
+                        original_stft.shape,
+                    )
+                    # STFT boundary frames contain zero padding rather than
+                    # a full window of observed audio. Exclude them.
+                    centers = np.arange(original_stft.shape[1]) * reconstruction_hop
+                    valid_time = (
+                        (centers >= nperseg / 2)
+                        & (centers + nperseg / 2 <= signal.size)
+                    )
+                    estimation_weight *= valid_time[None, :]
                 estimate = _estimate_inside_mask_noise_db(
                     original_stft,
-                    source_weight,
+                    source_weight if estimation_weight is None else estimation_weight,
                     eps=eps,
                 )
                 if estimate is None:
+                    if white_noise_level_mode == "event_noise_floor":
+                        raise ValueError(
+                            f"Cannot estimate event noise floor for source {source_idx}: "
+                            "too few analyzed bins in complete STFT frames"
+                        )
                     if (
                         fallback_source_masks is None
                         or not fallback_source_mask_allowed[source_idx]
@@ -4361,6 +4388,8 @@ def fill_outside_source_mask_with_white_noise(
                     np.maximum(0.0, 1.0 - source_weight ** 2)
                 )
                 replacement_region = noise_weight >= 0.9
+                if estimation_weight is not None:
+                    replacement_region = estimation_weight > 0
                 if np.count_nonzero(replacement_region) < 32:
                     replacement_region = noise_weight > 0.0
                 from scipy.ndimage import uniform_filter
@@ -4401,7 +4430,7 @@ def fill_outside_source_mask_with_white_noise(
                 )
 
             if (
-                white_noise_level_mode != "inside_noise_floor"
+                not floor_mode
                 and target_snr_db is None
             ):
                 transition_weight = (
@@ -4422,7 +4451,7 @@ def fill_outside_source_mask_with_white_noise(
                     max(float(original_power), 0.0)
                     / max(float(noise_power), eps)
                 )
-            elif white_noise_level_mode != "inside_noise_floor":
+            elif not floor_mode:
                 source_component = source_weight * original_stft
                 noise_component = noise_weight * noise_stft
                 source_power = float(
@@ -4446,7 +4475,7 @@ def fill_outside_source_mask_with_white_noise(
                 )
             noise_stft *= noise_scale
 
-            if white_noise_level_mode == "inside_noise_floor":
+            if floor_mode:
                 source_power = float(
                     np.sum(np.abs(source_weight * original_stft) ** 2)
                 )
